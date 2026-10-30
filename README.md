@@ -55,4 +55,51 @@ Open **http://127.0.0.1:5000** in your browser.
 Without `supabase_config.ini` the app runs **in memory** with demo data and starts fresh every time.
 
 ## System architecture
-![CareMate system architecture: users, browser, Flask web layer, service layer, and storage (db.py, Supabase Postgres, uploads)](docs/system-architecture.webp)
+```mermaid
+flowchart TB
+    %% ---------- Users ----------
+    subgraph Users["👥 Users (demo role switcher)"]
+        P["🧑 Patient"]
+        D["🩺 Doctor"]
+        A["🛡️ Admin"]
+    end
+
+    Browser["🌐 Web browser<br/>HTML · CSS · JavaScript<br/>(autocomplete, slot editor, SVG map, PDF viewer)"]
+    P --> Browser
+    D --> Browser
+    A --> Browser
+
+    %% ---------- Web layer ----------
+    subgraph Web["Web layer · Flask (app.py)"]
+        Routes["Routes by role<br/>Reports · Appointments · Prescriptions · Stores<br/>Bookings · Slots & fees · My patients<br/>Insights · Users"]
+        Guard["Checks<br/>role locks · input validation<br/>report access only after accepted booking"]
+        Tpl["Jinja2 templates + static/style.css"]
+        Routes --> Guard
+        Routes --> Tpl
+    end
+    Browser <-->|"HTTP requests / pages"| Routes
+
+    %% ---------- Service layer ----------
+    subgraph Service["Service layer · services.py (Care Mate)"]
+        Logic["Business logic<br/>booking · accept/decline · waiting list<br/>prescriptions · reminders · store search<br/>admin rankings · activity log"]
+    end
+    Guard --> Logic
+
+    %% ---------- Storage ----------
+    subgraph Storage["Storage"]
+        DB["db.py<br/>write-through on every change<br/>restore() on startup"]
+        SB[("☁️ Supabase Postgres<br/>Mumbai · ap-south-1<br/>15 tables · Row Level Security")]
+        Files[("📁 uploads/<br/>report PDFs & images")]
+        DB <-->|"psycopg · parameterised SQL"| SB
+    end
+    Logic -->|"save each change"| DB
+    DB -->|"data loaded into memory at startup"| Logic
+    Guard -->|"upload / serve files"| Files
+
+    classDef user fill:#fde8e1,stroke:#d9583b,color:#15302d
+    classDef web fill:#e3f0ec,stroke:#0e6b5f,color:#15302d
+    classDef store fill:#e8eefc,stroke:#2f4fa8,color:#15302d
+    class P,D,A,Browser user
+    class Routes,Guard,Tpl,Logic web
+    class DB,SB,Files store
+```
