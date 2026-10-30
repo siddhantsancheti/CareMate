@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Appointments</p>
+  <h1>Book a doctor. Urgent cases are seen first.</h1>
+  <div class="ds-bar"><span class="ds">Min-Heap Priority Queue</span><span class="ds">Linked list (requests)</span><span class="ds">Queue (waiting list)</span><span class="ds">Binary Search on slots</span></div>
+</header>
+
+<section class="grid-side">
+  <form class="card form" method="post" action="{{ url_for('book') }}">
+    <h2>Book a visit</h2>
+    <label>Doctor
+      <select name="doctor_id" id="doctor">
+        {% for d in doctors %}<option value="{{ d.id }}" {{ 'selected' if d.id==selected }}>{{ d.name }}, {{ d.specialty }}</option>{% endfor %}
+      </select>
+    </label>
+    <p class="hint" id="doc-info"></p>
+    <label>Time slot <select name="slot" id="slot"></select></label>
+    <label>How urgent is it?
+      <select name="priority">
+        {% for k,v in priorities.items() %}<option value="{{k}}" {{ 'selected' if k==3 }}>{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Reason<input name="reason" maxlength="255" placeholder="e.g. Fever and cough"></label>
+    <button class="btn">Book appointment</button>
+    <p class="hint">The fee is paid at the clinic. If no slot is free you join the doctor's waiting list (FIFO) and automatically get the next slot that opens.</p>
+  </form>
+
+  <div class="stack-gap">
+    <div class="card">
+      <h2>My appointments</h2>
+      <table class="tbl">
+        <thead><tr><th>When</th><th>Doctor</th><th>Fee</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for a in mine|reverse %}
+          <tr>
+            <td>{{ a.slot }}</td><td>{{ doctor_name(a.doctor_id) }}<small>{{ a.reason }}</small></td>
+            <td>₹{{ '%g' % a.fee }}</td>
+            <td><span class="pill p{{ a.priority }}">{{ a.priority_label }}</span></td>
+            <td><span class="status s-{{ a.status|lower }}">{{ a.status }}</span>
+              {% if a.status == 'Pending' %}<small>waiting for the doctor to accept</small>{% endif %}</td>
+            <td>{% if a.status in ('Pending', 'Confirmed') %}<form method="post" action="{{ url_for('cancel', aid=a.id) }}" onsubmit="return confirm('Cancel this appointment?')"><button class="btn ghost small">Cancel</button></form>{% endif %}</td>
+          </tr>
+        {% else %}<tr><td colspan="6" class="muted">No appointments yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if waiting %}
+    <div class="card">
+      <h2>On the waiting list <span class="ds">FIFO queue</span></h2>
+      <ul class="log">{% for w in waiting %}<li>{{ doctor_name(w.doctor_id) }}: {{ w.reason }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const SLOTS = {{ slots|tojson }};
+  const DOCS = {{ doctors|tojson }};
+  const doc = document.getElementById('doctor'), slot = document.getElementById('slot'),
+        info = document.getElementById('doc-info');
+  function fill() {
+    const list = SLOTS[doc.value] || [], d = DOCS.find(x => x.id === doc.value);
+    info.textContent = d ? `${d.clinic} · ${d.auto_accept ? 'confirms bookings instantly' : 'accepts bookings by hand'}` : '';
+    slot.innerHTML = list.length
+      ? list.map(([s, fee]) => `<option value="${s}">${s} · ₹${fee}</option>`).join('')
+      : '<option value="">No free slots: join waiting list</option>';
+  }
+  doc.addEventListener('change', fill); fill();
+</script>
+{% endblock %}

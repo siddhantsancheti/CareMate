@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Under the hood{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Under the hood</p>
+  <h1>Every feature runs on a data structure we wrote ourselves.</h1>
+  <p class="lede">No built-in heapq, bisect or sorted(). All code is in the <code>dsa/</code> folder. The database only stores rows; on startup they are loaded back into these structures, which answer every query.</p>
+</header>
+
+<div class="card">
+<table class="tbl dsa">
+  <thead><tr><th>Feature</th><th>Data structure / algorithm</th><th>Why</th><th>Complexity</th><th>File</th></tr></thead>
+  <tbody>
+    <tr><td>Patients, doctors, admins, stores</td><td>Hash Table (chaining, auto-resize)</td><td>Fetch any record by id instantly</td><td>get/put O(1) avg</td><td>hash_table.py</td></tr>
+    <tr><td>Reports library</td><td>Doubly Linked List</td><td>New uploads go to the front; delete from anywhere</td><td>insert O(1), delete O(n)</td><td>linked_list.py</td></tr>
+    <tr><td>Reports between two dates</td><td>Binary Search Tree</td><td>Range query on dates; inorder = sorted</td><td>O(h + k)</td><td>bst.py</td></tr>
+    <tr><td>Sort reports</td><td>Merge Sort</td><td>Stable sort by date/title/type</td><td>O(n log n)</td><td>algorithms.py</td></tr>
+    <tr><td>Report on an exact date</td><td>Binary Search</td><td>Search the date-sorted list</td><td>O(log n)</td><td>algorithms.py</td></tr>
+    <tr><td>Keyword search</td><td>Linear Search</td><td>Substring match across fields</td><td>O(n)</td><td>algorithms.py</td></tr>
+    <tr><td>Booking requests (manual accept)</td><td>Doubly Linked List</td><td>New requests join the end; the doctor can accept or decline any one</td><td>add O(1), remove O(n)</td><td>linked_list.py</td></tr>
+    <tr><td>Doctor's patient queue</td><td>Min-Heap Priority Queue</td><td>Earlier days first; within a day Emergency → Urgent → Routine, then by time</td><td>push/pop O(log n)</td><td>heap.py</td></tr>
+    <tr><td>Free time slots + fees</td><td>Sorted list + Binary Search, Hash Table</td><td>Check and claim a slot quickly; fee looked up per slot</td><td>O(log n) find, O(1) fee</td><td>services.py</td></tr>
+    <tr><td>Waiting list</td><td>Queue (FIFO, linked)</td><td>First to wait gets the next cancelled slot</td><td>O(1)</td><td>queue_stack.py</td></tr>
+    <tr><td>Prescription history + undo</td><td>Stack (LIFO, linked)</td><td>Latest on top; undo = pop</td><td>O(1)</td><td>queue_stack.py</td></tr>
+    <tr><td>Medicine autocomplete</td><td>Trie</td><td>Prefix lookup as the doctor types</td><td>O(P + K)</td><td>trie.py</td></tr>
+    <tr><td>Nearest medical store</td><td>Graph + Dijkstra</td><td>Shortest road distance, plus the route</td><td>O((V+E) log V)</td><td>graph.py</td></tr>
+    <tr><td>Rank stores</td><td>Quick Sort</td><td>Stores with all medicines first, then nearest</td><td>O(n log n) avg</td><td>algorithms.py</td></tr>
+    <tr><td>Most booked doctors / most prescribed medicines</td><td>Hash Table counting + Min-Heap top-k</td><td>Count in one pass, keep only the k biggest in a heap of size k</td><td>O(n log k)</td><td>heap.py</td></tr>
+    <tr><td>Activity log</td><td>Stack</td><td>Newest event on top</td><td>O(1)</td><td>queue_stack.py</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 class="sec">Live state</h2>
+<section class="grid-3">
+  {% for name, s in stats.items() %}
+  <div class="card stat"><h3>{{ name }}</h3>
+    {% if s is mapping %}{% for k,v in s.items() %}<div class="kv"><span>{{ k.replace('_',' ') }}</span><b>{{ v }}</b></div>{% endfor %}
+    {% else %}<div class="big">{{ s }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Medical stores{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Nearest medical stores</p>
+  <h1>Find the closest store with your medicines.</h1>
+  <div class="ds-bar"><span class="ds">Weighted Graph (adjacency list)</span><span class="ds">Dijkstra + Min-Heap</span><span class="ds">Quick Sort</span><span class="ds">Hash Set (stock check)</span></div>
+</header>
+
+<form class="card filters" method="get">
+  <label class="inline">I am at
+    <select name="from">{% for p in places %}<option {{ 'selected' if p==origin }}>{{ p }}</option>{% endfor %}</select>
+  </label>
+  <label class="inline check"><input type="checkbox" name="rx" value="1" {{ 'checked' if use_rx }}><input type="hidden" name="rx" value="0">Check stock for the medicines I'm taking now</label>
+  <button class="btn small">Search</button>
+</form>
+{% if needed %}<p class="algo">Looking for: {% for m in needed %}<span class="tag">{{ m }}</span>{% endfor %}</p>{% endif %}
+
+<section class="grid-map">
+  <div class="card map-card">
+    {% set path = chosen.path if chosen else [] %}
+    {% set ns = namespace(on=[]) %}
+    {% for i in range(path|length - 1) %}{% set ns.on = ns.on + [path[i] ~ '|' ~ path[i+1], path[i+1] ~ '|' ~ path[i]] %}{% endfor %}
+    <svg viewBox="20 20 680 490" class="map" role="img" aria-label="City road map">
+      {% for u,v,w in graph.edges %}
+        {% set a = graph.pos[u] %}{% set b = graph.pos[v] %}
+        {% set hot = (u ~ '|' ~ v) in ns.on %}
+        <line x1="{{a[0]}}" y1="{{a[1]}}" x2="{{b[0]}}" y2="{{b[1]}}" class="road {{ 'hot' if hot }}"/>
+        <text x="{{ (a[0]+b[0])/2 }}" y="{{ (a[1]+b[1])/2 - 4 }}" class="km {{ 'hot' if hot }}">{{ w }}</text>
+      {% endfor %}
+      {% for name,p in graph.pos.items() %}
+        {% if name.startswith('store:') %}
+          {% set r = (results|selectattr('store.node','equalto',name)|list)[0] %}
+          <a href="?from={{ origin|urlencode }}&rx={{ '1' if use_rx else '0' }}&store={{ r.store.id }}">
+            <rect x="{{p[0]-9}}" y="{{p[1]-9}}" width="18" height="18" rx="4" class="store {{ 'ok' if r.has_all else 'partial' }} {{ 'sel' if chosen and chosen.store.id==r.store.id }}"/>
+            <text x="{{p[0]}}" y="{{p[1]+4}}" class="cross">+</text>
+            <text x="{{p[0]}}" y="{{p[1]+24}}" class="slabel">{{ name[6:] }}</text>
+          </a>
+        {% else %}
+          <circle cx="{{p[0]}}" cy="{{p[1]}}" r="{{ 9 if name==origin else 5 }}" class="place {{ 'me' if name==origin }}"/>
+          <text x="{{p[0]}}" y="{{p[1]-12}}" class="plabel {{ 'me' if name==origin }}">{{ name }}</text>
+        {% endif %}
+      {% endfor %}
+    </svg>
+    {% if chosen %}
+      <p class="route"><b>Route to {{ chosen.store.name }} · {{ chosen.distance }} km</b><br>
+      {% for n in chosen.path %}{{ n.replace('store:','') }}{{ ' → ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
+    <p class="legend"><span class="lg ok"></span>has all medicines <span class="lg partial"></span>missing some <span class="lg me"></span>you</p>
+  </div>
+
+  <div class="store-list">
+  {% for r in results %}
+    <a class="card store-card {{ 'sel' if chosen and chosen.store.id==r.store.id }}" href="?from={{ origin|urlencode }}&rx={{ '1' if use_rx else '0' }}&store={{ r.store.id }}">
+      <div class="sc-top">
+        <span class="rank">{{ loop.index }}</span>
+        <div><h3>{{ r.store.name }}</h3><small>{{ r.store.hours }} · {{ r.store.phone }}</small></div>
+        <b class="dist">{{ r.distance }}<small>km</small></b>
+      </div>
+      {% if needed %}
+        {% if r.has_all %}<p class="stock ok">✓ Has all {{ needed|length }} medicines</p>
+        {% else %}<p class="stock partial">{{ r.available }}/{{ needed|length }} available · missing {{ r.missing|map('title')|join(', ') }}</p>{% endif %}
+      {% endif %}
+    </a>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}

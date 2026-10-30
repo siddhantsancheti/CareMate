@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Reports library</p>
+  <h1>All your medical reports, in one place.</h1>
+  <div class="ds-bar"><span class="ds">Doubly Linked List</span><span class="ds">BST (by date, height {{ bst_height }})</span><span class="ds">Merge Sort</span><span class="ds">Binary Search</span><span class="ds">Linear Search</span></div>
+</header>
+
+<section class="grid-side">
+  <form class="card form" method="post" action="{{ url_for('upload_report') }}" enctype="multipart/form-data">
+    <h2>Upload a report</h2>
+    <label>Title<input name="title" required placeholder="e.g. Vitamin B12 test"></label>
+    <div class="row2">
+      <label>Type<select name="type">{% for t in types %}<option>{{ t }}</option>{% endfor %}</select></label>
+      <label>Date<input type="date" name="date" value="{{ today }}"></label>
+    </div>
+    <label>Doctor<input name="doctor" placeholder="Optional"></label>
+    <label>Notes / key values<textarea name="notes" rows="2" placeholder="e.g. B12 180 pg/mL (low)"></textarea></label>
+    <label class="file">File (PDF, PNG, JPG)<input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"></label>
+    <button class="btn">Add to library</button>
+  </form>
+
+  <div>
+    <form class="card filters" method="get">
+      <input name="q" value="{{ args.get('q','') }}" placeholder="Search title, notes, doctor…">
+      <select name="type"><option value="">All types</option>{% for t in types %}<option {{ 'selected' if args.get('type')==t }}>{{ t }}</option>{% endfor %}</select>
+      <select name="sort">
+        {% for k,l in [('date','Date'),('title','Title'),('type','Type')] %}<option value="{{k}}" {{ 'selected' if args.get('sort','date')==k }}>Sort: {{l}}</option>{% endfor %}
+      </select>
+      <select name="order"><option value="desc" {{ 'selected' if args.get('order','desc')=='desc' }}>↓ Desc</option><option value="asc" {{ 'selected' if args.get('order')=='asc' }}>↑ Asc</option></select>
+      <label class="inline">From<input type="date" name="from" value="{{ args.get('from','') }}"></label>
+      <label class="inline">To<input type="date" name="to" value="{{ args.get('to','') }}"></label>
+      <button class="btn small">Apply</button>
+      <a class="btn ghost small" href="{{ url_for('reports') }}">Reset</a>
+    </form>
+    <form class="filters slim" method="get">
+      <label class="inline">Find report on exact date<input type="date" name="on_date" value="{{ args.get('on_date','') }}"></label>
+      <button class="btn ghost small">Binary search</button>
+    </form>
+
+    <p class="algo">⚙ {{ algo }} · {{ items|length }} of {{ total }} reports</p>
+
+    <div class="report-list">
+    {% for r in items %}
+      <article class="card report clickable">
+        <div class="r-date"><b>{{ r.date[8:10] }}</b><span>{{ r.date[5:7] }}/{{ r.date[2:4] }}</span></div>
+        <div class="r-body">
+          <span class="tag">{{ r.type }}</span>{% if r.filename %}<span class="tag file">{{ r.filename.rsplit('.', 1)[-1]|upper }}</span>{% endif %}
+          <h3><a class="stretch" href="{{ url_for('view_report', rid=r.id) }}">{{ r.title }}</a></h3>
+          <p>{{ r.notes }}</p>
+          <small>{{ r.doctor or '—' }}{% if r.uploaded_by %} · <b class="by-doc">uploaded by your doctor</b>{% endif %}</small>
+        </div>
+        <div class="r-act">
+          <a class="btn ghost small" href="{{ url_for('view_report', rid=r.id) }}">{{ 'Open' if r.filename else 'Details' }}</a>
+          {% if not r.uploaded_by %}<form method="post" action="{{ url_for('delete_report', rid=r.id) }}" onsubmit="return confirm('Delete this report?')"><button class="btn danger small">Delete</button></form>{% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="card empty">No reports match. Try clearing the filters.</div>
+    {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

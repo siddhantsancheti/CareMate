@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Prescriptions{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Prescriptions</p>
+  <h1>Your medicines, and when to take them.</h1>
+  <p class="lede">A prescription appears here the moment your doctor sends it.</p>
+  <div class="ds-bar"><span class="ds">Stack (newest first)</span><span class="ds">Merge Sort (reminders)</span><span class="ds">Hash Table (lookup by id)</span></div>
+</header>
+
+<section class="grid-side">
+  <div class="stack-gap">
+    <div class="card tint-teal">
+      <h2>Today's reminders</h2>
+      {% if schedule %}
+      <ul class="timeline">{% for s in schedule %}<li><b>{{ s.time }}</b><span>{{ s.medicine }}<em>{{ s.dose }}</em></span></li>{% endfor %}</ul>
+      {% else %}<p class="muted">No medicines running today.</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Recent prescriptions</h2>
+      {% for rx in history %}
+        <a class="rx-pick {{ 'sel' if chosen and chosen.id == rx.id }}" href="{{ url_for('prescriptions', rx=rx.id) }}">
+          <b>℞ {{ rx.date }}</b>
+          <span>{{ doctor_name(rx.doctor_id) }}</span>
+          {% if rx.date >= new_since %}<span class="pill p1">New</span>{% endif %}
+          {% if rx_running(rx) %}<span class="pill p3">Active</span>{% endif %}
+        </a>
+      {% else %}<p class="muted">No prescriptions yet. Your doctor's prescriptions will show up here.</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    {% if chosen %}
+      <div class="rx top">
+        <div class="rx-head"><b>℞ {{ chosen.date }}</b><span>{{ doctor_name(chosen.doctor_id) }}</span>
+          {% if chosen.id == history[0].id %}<span class="pill p2">Latest</span>{% endif %}</div>
+        <table class="tbl compact">
+          <tr><th>Medicine</th><th>Dose</th><th>When</th><th>Days</th><th>Status</th></tr>
+          {% for it in chosen['items'] %}<tr><td>{{ it.medicine }}</td><td>{{ it.dose }}</td><td>{{ it.frequency }}</td><td>{{ it.days }}</td>
+            <td>{% if is_active(chosen, it) %}<span class="status s-confirmed">Taking now</span>{% else %}<span class="status s-completed">Finished</span>{% endif %}</td></tr>{% endfor %}
+        </table>
+        {% if chosen.notes %}<p class="note">{{ chosen.notes }}</p>{% endif %}
+        <a class="btn small" href="{{ url_for('stores') }}">Find a store with my current medicines →</a>
+      </div>
+    {% else %}<p class="muted">Pick a prescription to see it.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

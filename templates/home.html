@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Today{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">{{ today }}</p>
+  <h1>Good to see you, {{ me.name.split()[0] }}.</h1>
+  <p class="lede">Here's what your day looks like: medicines, visits, new prescriptions and your latest reports.</p>
+</header>
+
+<section class="grid-3">
+  <div class="card tint-teal">
+    <h2>Today's medicines</h2>
+    {% if schedule %}
+      <ul class="timeline">
+      {% for s in schedule %}
+        <li><b>{{ s.time }}</b><span>{{ s.medicine }}<em>{{ s.dose }} · {{ doctor_name(s.doctor_id) }}</em></span></li>
+      {% endfor %}
+      </ul>
+    {% else %}<p class="muted">No medicines running today.</p>{% endif %}
+    <a class="link" href="{{ url_for('prescriptions') }}">All prescriptions →</a>
+  </div>
+
+  <div class="card">
+    <h2>Upcoming visits</h2>
+    {% for a in upcoming %}
+      <div class="mini-row">
+        <span class="pill p{{ a.priority }}">{{ a.priority_label }}</span>
+        <div><b>{{ doctor_name(a.doctor_id) }}</b><small>{{ a.slot }} · ₹{{ '%g' % a.fee }} · <span class="status s-{{ a.status|lower }}">{{ a.status }}</span></small></div>
+      </div>
+    {% else %}<p class="muted">No visits booked.</p>{% endfor %}
+    <a class="link" href="{{ url_for('appointments') }}">Book a visit →</a>
+  </div>
+
+  <div class="card">
+    <h2>Recent prescriptions</h2>
+    {% for rx in recent_rx %}
+      <a class="mini-row plain" href="{{ url_for('prescriptions', rx=rx.id) }}">
+        <span class="tag">℞ {{ rx.date }}</span>
+        <div><b>{{ doctor_name(rx.doctor_id) }}</b><small>{{ rx['items']|map(attribute='medicine')|join(', ') }}</small></div>
+      </a>
+    {% else %}<p class="muted">No prescriptions yet.</p>{% endfor %}
+    <a class="link" href="{{ url_for('prescriptions') }}">Open prescriptions →</a>
+  </div>
+</section>
+
+<section class="grid-3">
+  <div class="card">
+    <h2>Recent reports <span class="count">{{ report_count }}</span></h2>
+    {% for r in reports %}
+      <a class="mini-row plain" href="{{ url_for('view_report', rid=r.id) }}"><span class="tag">{{ r.type }}</span>
+        <div><b>{{ r.title }}</b><small>{{ r.date }}{% if r.uploaded_by %} · uploaded by {{ doctor_name(r.uploaded_by) }}{% endif %}</small></div></a>
+    {% else %}<p class="muted">No reports yet.</p>{% endfor %}
+    <a class="link" href="{{ url_for('reports') }}">Open library →</a>
+  </div>
+  <a class="card cta" href="{{ url_for('stores') }}">
+    <h2>Need to buy your medicines?</h2>
+    <p>Find the nearest store that stocks everything you're taking right now.</p>
+    <span class="btn">Find stores near {{ me.location }}</span>
+  </a>
+  <div class="card">
+    <h2>Your activity <span class="ds">Stack</span></h2>
+    <ul class="log">{% for a in activity %}<li>{{ a }}</li>{% else %}<li class="muted">Nothing yet.</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endblock %}

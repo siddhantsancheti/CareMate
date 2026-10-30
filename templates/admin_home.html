@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Insights{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Admin · Insights</p>
+  <h1>How the platform is being used.</h1>
+  <div class="ds-bar"><span class="ds">Hash Table (counting)</span><span class="ds">Min-Heap top-k</span></div>
+</header>
+
+<section class="stats-row">
+  <div class="card stat"><h3>Patients</h3><div class="big">{{ totals.patients }}</div></div>
+  <div class="card stat"><h3>Doctors</h3><div class="big">{{ totals.doctors }}</div></div>
+  <div class="card stat"><h3>Appointments</h3><div class="big">{{ totals.appointments }}</div>
+    <small>{{ totals.pending }} pending · {{ totals.confirmed }} confirmed · {{ totals.completed }} done</small></div>
+  <div class="card stat"><h3>Prescriptions</h3><div class="big">{{ totals.prescriptions }}</div></div>
+  <div class="card stat"><h3>Fees from completed visits</h3><div class="big">₹{{ '{:,.0f}'.format(totals.fees) }}</div></div>
+</section>
+
+<section class="grid-2">
+  <div class="card">
+    <h2>Most booked doctors</h2>
+    {% set top = top_doctors[0][1] if top_doctors else 1 %}
+    <ol class="bars">
+    {% for d, n in top_doctors %}
+      <li><span class="bar-label"><b>{{ d.name }}</b><small>{{ d.specialty }}</small></span>
+        <span class="bar"><i style="width: {{ (100 * n / top)|round }}%"></i></span><b class="bar-n">{{ n }}</b></li>
+    {% else %}<li class="muted">No bookings yet.</li>{% endfor %}
+    </ol>
+    <p class="hint">Counts pending, confirmed and completed bookings.</p>
+  </div>
+  <div class="card">
+    <h2>Most prescribed medicines</h2>
+    {% set top = top_medicines[0][1] if top_medicines else 1 %}
+    <ol class="bars">
+    {% for m, n in top_medicines %}
+      <li><span class="bar-label"><b>{{ m }}</b></span>
+        <span class="bar"><i style="width: {{ (100 * n / top)|round }}%"></i></span><b class="bar-n">{{ n }}</b></li>
+    {% else %}<li class="muted">No prescriptions yet.</li>{% endfor %}
+    </ol>
+    <p class="hint">Times each medicine appears across all prescriptions.</p>
+  </div>
+</section>
+
+<section class="card" style="margin-top:18px">
+  <h2>Platform activity <span class="ds">Stack</span></h2>
+  <ul class="log">{% for a in activity %}<li>{{ a }}</li>{% endfor %}</ul>
+  <a class="link" href="{{ url_for('admin_users') }}">Manage users →</a>
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Slots & fees{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Slots &amp; fees</p>
+  <h1>Choose the slots you offer each day.</h1>
+  <p class="lede">Tick the times you're available, add any custom time you like, and set the fee for that day. Booked slots stay, so patients are never dropped.</p>
+  <div class="ds-bar"><span class="ds">Sorted list + Binary Search</span><span class="ds">Hash Table (fee per slot)</span><span class="ds">Merge Sort</span></div>
+</header>
+
+<section class="grid-side">
+  <div class="stack-gap">
+    <form class="card filters" method="get">
+      <label class="inline">Day<input type="date" name="day" value="{{ day }}" min="{{ today }}"></label>
+      <button class="btn small">Open</button>
+    </form>
+    <div class="card">
+      <h2>Upcoming days</h2>
+      <table class="tbl compact">
+        <tr><th>Day</th><th>Free</th><th>Booked</th><th>Fee</th></tr>
+        {% for d, free, booked, fee in days %}<tr class="{{ 'sel-row' if d == day }}"><td><a href="{{ url_for('doctor_slots', day=d) }}">{{ d }}</a></td><td>{{ free }}</td><td>{{ booked }}</td><td>₹{{ '%g' % fee if fee is not none else '—' }}</td></tr>
+        {% else %}<tr><td colspan="4" class="muted">No slots yet. Pick a day above.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <form class="card form" method="post" action="{{ url_for('doctor_slots', day=day) }}">
+    <h2>{{ day }}</h2>
+    <div class="times" id="times">
+      {% for t, state, f in view %}
+        <label class="time {{ state }} {{ 'custom' if t not in grid }}">
+          <input type="checkbox" name="times" value="{{ t }}" {{ 'checked' if state != 'off' }} {{ 'disabled' if state == 'booked' }}>
+          <span>{{ t }}</span>{% if state == 'booked' %}<small>booked</small>{% endif %}
+        </label>
+        {% if state == 'booked' %}<input type="hidden" name="times" value="{{ t }}">{% endif %}
+      {% endfor %}
+    </div>
+    <div class="custom-add">
+      <label class="inline">Custom time<input type="time" id="custom-time" step="300"></label>
+      <button type="button" class="btn ghost small" id="add-time">+ Add slot</button>
+      <span class="hint" id="custom-msg">Any time, e.g. 07:15 or 20:45. Remember to save.</span>
+    </div>
+    <div class="row2">
+      <label>Fee for this day (₹)<input type="number" name="fee" min="0" max="100000" step="50" value="{{ '%g' % fee }}"></label>
+      <div class="quick">
+        <button type="button" class="btn ghost small" data-pick="all">Select all</button>
+        <button type="button" class="btn ghost small" data-pick="morning">Morning</button>
+        <button type="button" class="btn ghost small" data-pick="evening">Evening</button>
+        <button type="button" class="btn ghost small" data-pick="none">Clear</button>
+      </div>
+    </div>
+    <button class="btn">Save slots for {{ day }}</button>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  // add a custom time as a ticked slot, kept in time order
+  document.getElementById('add-time').onclick = () => {
+    const t = document.getElementById('custom-time').value, msg = document.getElementById('custom-msg');
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) { msg.textContent = 'Pick a time first.'; return; }
+    const box = document.getElementById('times');
+    const existing = box.querySelector(`input[value="${t}"]`);
+    if (existing) { if (!existing.disabled) existing.checked = true; msg.textContent = `${t} is already in the list (ticked).`; return; }
+    const label = document.createElement('label');
+    label.className = 'time custom';
+    label.innerHTML = `<input type="checkbox" name="times" value="${t}" checked><span>${t}</span>`;
+    const after = [...box.querySelectorAll('label.time')].find(l => l.querySelector('input').value > t);
+    box.insertBefore(label, after || null);
+    msg.textContent = `${t} added. Save to offer it.`;
+  };
+  document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.time input[type=checkbox]:not(:disabled)').forEach(c => {
+      const h = +c.value.slice(0, 2);
+      c.checked = b.dataset.pick === 'all' ? true
+                : b.dataset.pick === 'morning' ? h >= 9 && h < 13
+                : b.dataset.pick === 'evening' ? h >= 16 && h < 20 : false;
+    });
+  });
+</script>
+{% endblock %}

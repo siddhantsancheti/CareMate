@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+
+{% macro patient_fields(p) %}
+  <label>Name<input name="name" required maxlength="100" value="{{ p.name if p }}"></label>
+  <div class="row2">
+    <label>Age<input type="number" name="age" min="0" max="130" value="{{ p.age if p }}"></label>
+    <label>Gender<select name="gender">{% for g in ['Female', 'Male', 'Other'] %}<option {{ 'selected' if p and p.gender==g }}>{{ g }}</option>{% endfor %}</select></label>
+  </div>
+  <div class="row2">
+    <label>Blood group<select name="blood_group">{% for b in ['A+','A-','B+','B-','O+','O-','AB+','AB-'] %}<option {{ 'selected' if p and p.blood_group==b }}>{{ b }}</option>{% endfor %}</select></label>
+    <label>Phone<input name="phone" maxlength="20" value="{{ p.phone if p }}"></label>
+  </div>
+  <label>Locality<select name="location">{% for pl in places %}<option {{ 'selected' if p and p.location==pl }}>{{ pl }}</option>{% endfor %}</select></label>
+{% endmacro %}
+
+{% macro doctor_fields(d) %}
+  <label>Name<input name="name" required maxlength="100" value="{{ d.name if d }}" placeholder="Dr. …"></label>
+  <label>Specialty<input name="specialty" maxlength="100" value="{{ d.specialty if d }}"></label>
+  <label>Clinic / hospital<input name="clinic" maxlength="150" value="{{ d.clinic if d }}"></label>
+  <div class="row2">
+    <label>Default fee (₹)<input type="number" name="fee" min="0" max="100000" step="50" value="{{ '%g' % d.fee if d else 500 }}"></label>
+    <label>Phone<input name="phone" maxlength="20" value="{{ d.phone if d }}"></label>
+  </div>
+{% endmacro %}
+
+{% macro toggle(u) %}
+  <form method="post" action="{{ url_for('admin_toggle_user', uid=u.id) }}">
+    <button class="btn small {{ 'danger' if u.active else 'ghost' }}" {{ 'disabled' if u.id == me.id }}>{{ 'Deactivate' if u.active else 'Reactivate' }}</button>
+  </form>
+{% endmacro %}
+
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">Admin · Users</p>
+  <h1>Everyone using CareMate.</h1>
+  <p class="lede">Add, edit or deactivate patients, doctors and admins. Deactivated users can't sign in or be booked, but their records are kept.</p>
+  <div class="ds-bar"><span class="ds">Hash Table (users by id)</span><span class="ds">Merge Sort (by name)</span></div>
+</header>
+
+{% for title, role_key, users in [('Patients', 'patient', patients), ('Doctors', 'doctor', doctors), ('Admins', 'admin', admins)] %}
+<section class="card users">
+  <div class="desk-head">
+    <h2>{{ title }} <span class="count">{{ users|length }}</span></h2>
+    <details class="add">
+      <summary class="btn small">+ Add {{ role_key }}</summary>
+      <form class="form pop" method="post" action="{{ url_for('admin_add_user', role=role_key) }}">
+        {% if role_key == 'patient' %}{{ patient_fields(none) }}{% elif role_key == 'doctor' %}{{ doctor_fields(none) }}
+        {% else %}<label>Name<input name="name" required maxlength="100"></label>{% endif %}
+        <button class="btn small">Add</button>
+      </form>
+    </details>
+  </div>
+  <table class="tbl">
+    <thead><tr><th>Name</th><th>Details</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr class="{{ 'off' if not u.active }}">
+        <td><b>{{ u.name }}</b><small>{{ u.id }}</small></td>
+        <td>
+          {% if role_key == 'patient' %}{{ u.age }} yrs · {{ u.gender }} · {{ u.blood_group }}<small>{{ u.location }} · {{ u.phone }}</small>
+          {% elif role_key == 'doctor' %}{{ u.specialty }} · ₹{{ '%g' % u.fee }}<small>{{ u.clinic }} · {{ 'auto-accept' if u.auto_accept else 'manual accept' }}</small>
+          {% else %}Administrator{% endif %}
+        </td>
+        <td><span class="status {{ 's-confirmed' if u.active else 's-cancelled' }}">{{ 'Active' if u.active else 'Deactivated' }}</span></td>
+        <td class="row-act">
+          <details class="add">
+            <summary class="btn ghost small">Edit</summary>
+            <form class="form pop" method="post" action="{{ url_for('admin_edit_user', uid=u.id) }}">
+              {% if role_key == 'patient' %}{{ patient_fields(u) }}{% elif role_key == 'doctor' %}{{ doctor_fields(u) }}
+              {% else %}<label>Name<input name="name" required maxlength="100" value="{{ u.name }}"></label>{% endif %}
+              <button class="btn small">Save</button>
+            </form>
+          </details>
+          {{ toggle(u) }}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+{% endblock %}

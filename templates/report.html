@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ r.title }}{% endblock %}
+{% block content %}
+<a class="link back" href="{{ back }}">← Back to {{ 'your reports' if role == 'patient' else patient.name ~ "'s reports" }}</a>
+<header class="page-head head-row">
+  <div>
+    <p class="eyebrow">{{ r.type }} · {{ r.date }}</p>
+    <h1>{{ r.title }}</h1>
+    <p class="lede">{{ patient.name }} · {{ r.doctor or 'No doctor listed' }}{% if r.uploaded_by %} · uploaded by {{ doctor_name(r.uploaded_by) }}{% endif %}</p>
+  </div>
+  {% if r.filename %}
+  <div class="doc-actions">
+    <a class="btn" href="{{ url_for('uploaded_file', filename=r.filename) }}" target="_blank" rel="noopener">Open in new tab</a>
+    <a class="btn ghost" href="{{ url_for('uploaded_file', filename=r.filename) }}" download>Download</a>
+  </div>
+  {% endif %}
+</header>
+
+{% if r.notes %}<p class="note">{{ r.notes }}</p>{% endif %}
+
+{% if ext == 'pdf' %}
+  <iframe class="doc-view" src="{{ url_for('uploaded_file', filename=r.filename) }}#view=FitH" title="{{ r.title }} (PDF)"></iframe>
+  <p class="hint">Scroll through every page, zoom or search right here, or open it in a new tab.</p>
+{% elif ext %}
+  <a href="{{ url_for('uploaded_file', filename=r.filename) }}" target="_blank" rel="noopener">
+    <img class="doc-img" src="{{ url_for('uploaded_file', filename=r.filename) }}" alt="{{ r.title }}"></a>
+{% else %}
+  <div class="card empty">No file is attached to this report yet.</div>
+{% endif %}
+
+{% if can_change %}
+<form class="card filters attach" method="post" action="{{ url_for('attach_report_file', rid=r.id) }}" enctype="multipart/form-data">
+  <label class="inline">{{ 'Replace the file' if r.filename else 'Attach the full report' }} (PDF, PNG, JPG)
+    <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required></label>
+  <button class="btn small">{{ 'Replace' if r.filename else 'Attach' }}</button>
+</form>
+{% endif %}
+{% endblock %}

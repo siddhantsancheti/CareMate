@@ -1,0 +1,10 @@
+# secrets
+supabase_config.ini
+
+# uploaded report files are patient data; only the generated demo samples are kept
+uploads/*
+!uploads/.gitkeep
+!uploads/sample_*.pdf
+
+__pycache__/
+venv/

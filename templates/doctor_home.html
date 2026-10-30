@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Bookings{% endblock %}
+{% block content %}
+<header class="page-head head-row">
+  <div>
+    <p class="eyebrow">Bookings</p>
+    <h1>{{ me.name }}</h1>
+    <p class="lede">{{ me.clinic }}</p>
+    <div class="ds-bar"><span class="ds">Linked list (requests)</span><span class="ds">Min-Heap (patient queue)</span><span class="ds">Queue (waiting list)</span></div>
+  </div>
+  <form class="card switch-card" method="post" action="{{ url_for('toggle_auto_accept') }}">
+    <input type="hidden" name="on" value="{{ '0' if me.auto_accept else '1' }}">
+    <b>Auto-accept bookings</b>
+    <span class="status {{ 's-confirmed' if me.auto_accept else 's-pending' }}">{{ 'ON: confirmed instantly' if me.auto_accept else 'OFF: you accept each one' }}</span>
+    <button class="btn small {{ 'ghost' if me.auto_accept }}">{{ 'Turn off' if me.auto_accept else 'Turn on' }}</button>
+  </form>
+</header>
+
+<section class="grid-3">
+  <div class="card">
+    <h2>New requests <span class="count">{{ pending|length }}</span></h2>
+    {% for a in pending %}
+      <div class="req">
+        <div><span class="pill p{{ a.priority }}">{{ a.priority_label }}</span> <b>{{ patient_name(a.patient_id) }}</b>
+          <small>{{ a.slot }} · ₹{{ '%g' % a.fee }} · {{ a.reason }}</small></div>
+        <div class="req-act">
+          <form method="post" action="{{ url_for('handle_request', aid=a.id, action='accept') }}"><button class="btn small">Accept</button></form>
+          <form method="post" action="{{ url_for('handle_request', aid=a.id, action='reject') }}"><button class="btn danger small">Decline</button></form>
+        </div>
+      </div>
+    {% else %}<p class="muted">{{ 'Auto-accept is on, so nothing waits here.' if me.auto_accept else 'No requests waiting.' }}</p>{% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>Patient queue <span class="ds">heap order</span></h2>
+    <ol class="queue">
+    {% for a in queue %}
+      <li class="{{ 'next' if loop.first }}"><span class="pill p{{ a.priority }}">{{ a.priority_label }}</span>
+        <b>{{ patient_name(a.patient_id) }}</b><small>{{ a.slot }} · {{ a.reason }}</small></li>
+    {% else %}<li class="muted">No confirmed patients.</li>{% endfor %}
+    </ol>
+    <form method="post" action="{{ url_for('call_next') }}"><button class="btn small" {{ 'disabled' if not queue }}>Call next patient (heap pop)</button></form>
+  </div>
+
+  <div class="card">
+    <h2>Waiting list <span class="ds">FIFO</span></h2>
+    <ol class="queue">
+    {% for w in waiting %}
+      <li><b>{{ patient_name(w.patient_id) }}</b><small>{{ w.reason }}</small></li>
+    {% else %}<li class="muted">Nobody waiting.</li>{% endfor %}
+    </ol>
+    <p class="hint">When a slot opens up, the first person here gets it automatically.</p>
+  </div>
+</section>
+
+<section class="grid-2">
+  <div class="card">
+    <h2>Next days</h2>
+    <table class="tbl compact">
+      <tr><th>Day</th><th>Free</th><th>Booked</th><th>Fee</th></tr>
+      {% for d, free, booked, fee in days %}<tr><td><a href="{{ url_for('doctor_slots', day=d) }}">{{ d }}</a></td><td>{{ free }}</td><td>{{ booked }}</td><td>₹{{ '%g' % fee if fee is not none else '—' }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No slots yet.</td></tr>{% endfor %}
+    </table>
+    <a class="link" href="{{ url_for('doctor_slots') }}">Manage slots &amp; fees →</a>
+  </div>
+  <div class="card">
+    <h2>Recent activity <span class="ds">Stack</span></h2>
+    <ul class="log">{% for a in activity %}<li>{{ a }}</li>{% else %}<li class="muted">Nothing yet.</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endblock %}

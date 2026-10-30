@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}My patients{% endblock %}
+{% block content %}
+<header class="page-head">
+  <p class="eyebrow">My patients</p>
+  <h1>Reports, tests and prescriptions.</h1>
+  <p class="lede">A patient appears here once you accept their booking. Prescriptions reach the patient the moment you save them.</p>
+  <div class="ds-bar"><span class="ds">Linked list + BST (reports)</span><span class="ds">Stack (prescriptions)</span><span class="ds">Trie (autocomplete)</span></div>
+</header>
+
+<section class="grid-side">
+  <div class="card">
+    <h2>Patients <span class="count">{{ patients|length }}</span></h2>
+    {% for p in patients %}
+      <a class="rx-pick {{ 'sel' if patient and patient.id == p.id }}" href="{{ url_for('doctor_patients', patient=p.id) }}">
+        <b>{{ p.name }}</b><span>{{ p.age }} yrs · {{ p.blood_group }}</span>
+      </a>
+    {% else %}<p class="muted">No patients yet. Accept a booking to see the patient here.</p>{% endfor %}
+  </div>
+
+  {% if patient %}
+  <div class="stack-gap">
+    <div class="card">
+      <div class="desk-head"><h2>{{ patient.name }}'s reports <span class="count">{{ reports|length }}</span></h2>
+        <small>{{ patient.age }} yrs · {{ patient.gender }} · {{ patient.blood_group }} · {{ patient.phone }}</small></div>
+      <div class="report-list">
+      {% for r in reports %}
+        <article class="report compact-report clickable">
+          <div class="r-date"><b>{{ r.date[8:10] }}</b><span>{{ r.date[5:7] }}/{{ r.date[2:4] }}</span></div>
+          <div class="r-body"><span class="tag">{{ r.type }}</span>{% if r.filename %}<span class="tag file">{{ r.filename.rsplit('.', 1)[-1]|upper }}</span>{% endif %}<h3><a class="stretch" href="{{ url_for('view_report', rid=r.id) }}">{{ r.title }}</a></h3><p>{{ r.notes }}</p>
+            <small>{{ r.doctor or '—' }}{% if r.uploaded_by == me.id %} · uploaded by you{% endif %}</small></div>
+          <div class="r-act"><a class="btn ghost small" href="{{ url_for('view_report', rid=r.id) }}">{{ 'Open' if r.filename else 'Details' }}</a></div>
+        </article>
+      {% else %}<p class="muted">No reports yet.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <form class="card form" method="post" action="{{ url_for('doctor_upload_report', pid=patient.id) }}" enctype="multipart/form-data">
+        <h2>Upload a test report</h2>
+        <label>Title<input name="title" required maxlength="150" placeholder="e.g. Fasting blood sugar"></label>
+        <div class="row2">
+          <label>Type<select name="type">{% for t in types %}<option>{{ t }}</option>{% endfor %}</select></label>
+          <label>Date<input type="date" name="date" value="{{ today }}"></label>
+        </div>
+        <label>Findings<textarea name="notes" rows="2" placeholder="e.g. FBS 132 mg/dL (high)"></textarea></label>
+        <label class="file">File (PDF, PNG, JPG)<input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg"></label>
+        <button class="btn">Upload to patient's library</button>
+      </form>
+
+      <form class="card form" method="post" action="{{ url_for('prescribe', pid=patient.id) }}" autocomplete="off">
+        <h2>Write a prescription</h2>
+        <div id="meds">
+          <div class="med-row">
+            <div class="ac"><input name="medicine" placeholder="Medicine (type 'pa'…)" class="med-input" maxlength="100"><ul class="ac-list"></ul></div>
+            <input name="dose" placeholder="Dose" value="1 tablet">
+            <select name="frequency">{% for f in frequencies %}<option>{{ f }}</option>{% endfor %}</select>
+            <input name="days" type="number" min="1" max="365" value="5" title="Days">
+          </div>
+        </div>
+        <button type="button" class="btn ghost small" id="add-med">+ Add medicine</button>
+        <label>Advice<textarea name="notes" rows="2" placeholder="e.g. Take after food"></textarea></label>
+        <button class="btn">Send prescription (push)</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="desk-head">
+        <h2>Prescription history <span class="ds">top of stack first</span></h2>
+        <form method="post" action="{{ url_for('undo_prescription', pid=patient.id) }}" onsubmit="return confirm('Withdraw the newest prescription?')">
+          <button class="btn danger small" {{ 'disabled' if not history or history[0].doctor_id != me.id }}>Withdraw newest (pop)</button></form>
+      </div>
+      {% for rx in history %}
+        <article class="rx {{ 'top' if loop.first }}">
+          <div class="rx-head"><b>℞ {{ rx.date }}</b><span>{{ doctor_name(rx.doctor_id) }}</span></div>
+          <table class="tbl compact">
+            <tr><th>Medicine</th><th>Dose</th><th>When</th><th>Days</th></tr>
+            {% for it in rx['items'] %}<tr><td>{{ it.medicine }}</td><td>{{ it.dose }}</td><td>{{ it.frequency }}</td><td>{{ it.days }}</td></tr>{% endfor %}
+          </table>
+          {% if rx.notes %}<p class="note">{{ rx.notes }}</p>{% endif %}
+        </article>
+      {% else %}<p class="muted">No prescriptions yet.</p>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  const freqOpts = {{ frequencies|tojson }}.map(f => `<option>${f}</option>`).join('');
+  const addBtn = document.getElementById('add-med');
+  if (addBtn) addBtn.onclick = () => {
+    const row = document.createElement('div'); row.className = 'med-row';
+    row.innerHTML = `<div class="ac"><input name="medicine" placeholder="Medicine" class="med-input" maxlength="100"><ul class="ac-list"></ul></div>
+      <input name="dose" placeholder="Dose" value="1 tablet"><select name="frequency">${freqOpts}</select>
+      <input name="days" type="number" min="1" max="365" value="5">`;
+    document.getElementById('meds').appendChild(row);
+  };
+  // Trie-powered autocomplete: every keystroke calls /api/medicines?q=prefix
+  document.addEventListener('input', async e => {
+    if (!e.target.classList.contains('med-input')) return;
+    const list = e.target.nextElementSibling, q = e.target.value.trim();
+    if (!q) { list.innerHTML = ''; return; }
+    const names = await (await fetch('/api/medicines?q=' + encodeURIComponent(q))).json();
+    list.innerHTML = '';
+    names.forEach(n => { const li = document.createElement('li'); li.textContent = n; list.appendChild(li); });
+  });
+  document.addEventListener('mousedown', e => {
+    if (e.target.matches('.ac-list li')) {
+      const input = e.target.closest('.ac').querySelector('input');
+      input.value = e.target.textContent; e.target.parentElement.innerHTML = '';
+    }
+  });
+  document.addEventListener('focusout', e => {
+    if (e.target.classList.contains('med-input')) setTimeout(() => e.target.nextElementSibling.innerHTML = '', 150);
+  });
+</script>
+{% endblock %}
