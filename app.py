@@ -4,14 +4,16 @@ Run:  pip install -r requirements.txt
       python app.py
 Open: http://127.0.0.1:5000
 
-Three roles, switched with the "Signed in as" menu (demo only, no passwords):
+Three roles, each signing in with email and password:
   patient -> reports, appointments, prescriptions, nearest stores
   doctor  -> bookings, slots & fees, patients (reports, uploads, prescriptions)
   admin   -> insights (most booked doctors, most prescribed medicines), users
+Patients and doctors can sign up themselves.
 """
 
 import os
 import re
+import secrets
 import uuid
 from datetime import date, timedelta
 from functools import wraps
@@ -29,9 +31,22 @@ ALLOWED = {"pdf", "png", "jpg", "jpeg"}
 FREQUENCIES = list(FREQ_TIMES)
 TIME_RE = re.compile(r"([01]\d|2[0-3]):[0-5]\d")   # HH:MM, 00:00-23:59
 
+def load_secret_key():
+    """Signs the login cookie. Kept in a git-ignored file, created on first run."""
+    path = os.path.join(BASE_DIR, "secret_key.txt")
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            f.write(secrets.token_hex(32))
+    with open(path) as f:
+        return f.read().strip()
+
+
 app = Flask(__name__)
-app.secret_key = "fds-course-project-demo-key"
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024   # 10 MB uploads
+app.secret_key = os.environ.get("SECRET_KEY") or load_secret_key()
+app.config.update(MAX_CONTENT_LENGTH=10 * 1024 * 1024,      # 10 MB uploads
+                  SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+PUBLIC_PAGES = {"login", "signup", "static"}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Queries always run on our own data structures; the database (if configured) just stores the rows.
@@ -63,13 +78,17 @@ def valid_date(value):
 
 
 def current_user():
-    """(role, user). Falls back to the first active patient."""
-    uid = session.get("user_id")
-    u = na.user(uid)
+    """(role, user) of whoever is signed in, or (None, None)."""
+    u = na.user(session.get("user_id"))
     if not u or not u["active"]:
-        u = na.all_patients(active_only=True)[0]
-        session["user_id"] = u["id"]
+        return None, None
     return na.role_of(u["id"]), u
+
+
+@app.before_request
+def require_login():
+    if request.endpoint not in PUBLIC_PAGES and not current_user()[1]:
+        return redirect(url_for("login"))
 
 
 def requires(role):
@@ -77,7 +96,7 @@ def requires(role):
         @wraps(view)
         def wrapper(*args, **kwargs):
             if current_user()[0] != role:
-                flash(f"That page is for {role}s. Switch user in the sidebar.", "info")
+                flash(f"That page is only for {role}s.", "info")
                 return redirect(url_for("home"))
             return view(*args, **kwargs)
         return wrapper
@@ -108,20 +127,54 @@ def remove_upload(filename):
 def inject_globals():
     role, me = current_user()
     return dict(role=role, me=me,
-                switch_patients=na.all_patients(active_only=True),
-                switch_doctors=na.all_doctors(active_only=True),
-                switch_admins=na.all_admins(active_only=True),
                 doctor_name=lambda did: na.doctors.get(did)["name"] if na.doctors.contains(did) else "Doctor",
                 patient_name=lambda pid: na.patients.get(pid)["name"],
                 today=date.today().isoformat())
 
 
-@app.post("/switch-user")
-def switch_user():
-    u = na.user(request.form.get("user_id"))
-    if u and u["active"]:
+# ------------------------------------------------------------------ sign up / log in
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        u = na.authenticate(request.form.get("email"), request.form.get("password"))
+        if not u:
+            flash("Wrong email or password.", "error")
+            return render_template("login.html", email=request.form.get("email", "")), 401
+        session.clear()
         session["user_id"] = u["id"]
-    return redirect(url_for("home"))
+        return redirect(url_for("home"))
+    if current_user()[1]:
+        return redirect(url_for("home"))
+    return render_template("login.html", email="")
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    f = request.form
+    if request.method == "POST":
+        role, email, password = f.get("role"), f.get("email", "").strip().lower()[:120], f.get("password", "")
+        fields = user_fields(role, f) if role in ("patient", "doctor") else None
+        error = ("Choose patient or doctor and give your name." if not fields else
+                 "Enter a valid email address." if not EMAIL_RE.fullmatch(email) else
+                 "That email is already registered. Log in instead." if na.email_taken(email) else
+                 "Use a password of at least 6 characters." if len(password) < 6 else
+                 "The two passwords don't match." if password != f.get("confirm") else None)
+        if error:
+            flash(error, "error")
+            return render_template("signup.html", form=f, places=na.places()), 400
+        add = na.add_patient if role == "patient" else na.add_doctor
+        uid = add(**fields, email=email, password_hash=na.hash_password(password))
+        session.clear()
+        session["user_id"] = uid
+        flash(f"Welcome to CareMate, {fields['name']}!", "ok")
+        return redirect(url_for("doctor_slots") if role == "doctor" else url_for("home"))
+    return render_template("signup.html", form={}, places=na.places())
+
+
+@app.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 @app.get("/")
@@ -191,11 +244,6 @@ def api_medicines():
     return jsonify(na.suggest_medicines(request.args.get("q", "")))
 
 
-@app.get("/under-the-hood")
-def under_the_hood():
-    return render_template("dsa.html", stats=na.dsa_stats())
-
-
 # ================================================================== PATIENT
 @app.get("/reports")
 @requires("patient")
@@ -205,19 +253,12 @@ def reports():
     on_date = args.get("on_date", "")
     if on_date:
         items = na.find_report_on_date(me["id"], on_date)          # binary search
-        algo = f"Binary search on date-sorted reports for {on_date}"
     else:
         items = na.list_reports(me["id"], args.get("q", ""), args.get("type", ""),
                                 args.get("sort", "date"), args.get("order", "desc"),
                                 args.get("from", ""), args.get("to", ""))
-        used = ["BST range query" if (args.get("from") or args.get("to")) else "linked-list traversal"]
-        if args.get("q"):
-            used.append("linear search")
-        used.append(f"merge sort by {args.get('sort', 'date')}")
-        algo = " → ".join(used)
-    bst = na.report_index.get(me["id"])
-    return render_template("reports.html", items=items, types=REPORT_TYPES, args=args, algo=algo,
-                           total=len(na.reports.get(me["id"])), bst_height=bst.height())
+    return render_template("reports.html", items=items, types=REPORT_TYPES, args=args,
+                           total=len(na.reports.get(me["id"])))
 
 
 @app.post("/reports/upload")
@@ -511,13 +552,18 @@ def user_fields(role, form):
 @app.post("/admin/users/add/<role>")
 @requires("admin")
 def admin_add_user(role):
-    fields = user_fields(role, request.form)
-    if role not in ("patient", "doctor", "admin") or not fields:
-        flash("Please fill in at least the name.", "error")
+    fields = user_fields(role, request.form) if role in ("patient", "doctor", "admin") else None
+    email, password = request.form.get("email", "").strip().lower()[:120], request.form.get("password", "")
+    error = ("Please fill in at least the name." if not fields else
+             "Enter a valid email address." if not EMAIL_RE.fullmatch(email) else
+             "That email is already registered." if na.email_taken(email) else
+             "Use a password of at least 6 characters." if len(password) < 6 else None)
+    if error:
+        flash(error, "error")
         return redirect(url_for("admin_users"))
     add = dict(patient=na.add_patient, doctor=na.add_doctor, admin=na.add_admin)[role]
-    add(**fields)
-    flash(f"Added {role} {fields['name']}.", "ok")
+    add(**fields, email=email, password_hash=na.hash_password(password))
+    flash(f"Added {role} {fields['name']}. They can log in with {email}.", "ok")
     return redirect(url_for("admin_users"))
 
 
@@ -542,8 +588,6 @@ def admin_toggle_user(uid):
         abort(404)
     if uid == current_user()[1]["id"]:
         flash("You can't deactivate yourself.", "error")
-    elif na.role_of(uid) == "patient" and u["active"] and len(na.all_patients(active_only=True)) == 1:
-        flash("Keep at least one active patient.", "error")
     else:
         na.update_user(uid, active=not u["active"])
         flash(f"{u['name']} is now {'active' if u['active'] else 'deactivated'}.", "ok")

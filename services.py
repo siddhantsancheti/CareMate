@@ -25,6 +25,8 @@ data structures. The database never answers the app's queries.
 from datetime import date, datetime, timedelta
 from itertools import count
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from sample_reports import ensure_sample_file
 from dsa import (BST, DoublyLinkedList, Graph, HashTable, MinHeap, Queue, Stack,
                  Trie, binary_search, linear_search, merge_sort, quick_sort, top_k)
@@ -52,6 +54,7 @@ class CareMate:
         self.patients = HashTable()
         self.doctors = HashTable()
         self.admins = HashTable()
+        self.by_email = HashTable()         # email -> user id (for logging in)
         self.stores = HashTable()
 
         self.reports = HashTable()          # patient_id -> DoublyLinkedList of reports
@@ -105,11 +108,13 @@ class CareMate:
         return out
 
     # ================================================================ USERS
-    def add_patient(self, name, age, gender, blood_group, location, phone="", active=True, pid=None):
+    def add_patient(self, name, age, gender, blood_group, location, phone="", active=True, pid=None,
+                    email=None, password_hash=None):
         pid = pid or self._next_id("P")
         patient = dict(id=pid, name=name, age=age, gender=gender, blood_group=blood_group,
-                       location=location, phone=phone, active=active)
+                       location=location, phone=phone, active=active, email=email, password_hash=password_hash)
         self.patients.put(pid, patient)
+        self._index_email(email, pid)
         self.reports.put(pid, DoublyLinkedList())
         self.report_index.put(pid, BST())
         self.prescriptions.put(pid, Stack())
@@ -117,11 +122,12 @@ class CareMate:
         return pid
 
     def add_doctor(self, name, specialty, clinic, fee=500, auto_accept=True, phone="",
-                   active=True, did=None):
+                   active=True, did=None, email=None, password_hash=None):
         did = did or self._next_id("D")
         doctor = dict(id=did, name=name, specialty=specialty, clinic=clinic, fee=fee,
-                      auto_accept=auto_accept, phone=phone, active=active)
+                      auto_accept=auto_accept, phone=phone, active=active, email=email, password_hash=password_hash)
         self.doctors.put(did, doctor)
+        self._index_email(email, did)
         self.free_slots.put(did, [])
         self.pending.put(did, DoublyLinkedList())
         self.doctor_queue.put(did, MinHeap())
@@ -129,12 +135,33 @@ class CareMate:
         self._save("doctors", **doctor)
         return did
 
-    def add_admin(self, name, active=True, aid=None):
+    def add_admin(self, name, active=True, aid=None, email=None, password_hash=None):
         aid = aid or self._next_id("AD")
-        admin = dict(id=aid, name=name, active=active)
+        admin = dict(id=aid, name=name, active=active, email=email, password_hash=password_hash)
         self.admins.put(aid, admin)
+        self._index_email(email, aid)
         self._save("admins", **admin)
         return aid
+
+    # ---------------------------------------------------------------- sign-up / login
+    def _index_email(self, email, uid):
+        if email:
+            self.by_email.put(email.strip().lower(), uid)
+
+    @staticmethod
+    def hash_password(password):
+        return generate_password_hash(password)
+
+    def email_taken(self, email):
+        return self.by_email.contains((email or "").strip().lower())
+
+    def authenticate(self, email, password):
+        """The user with this email and password, or None (wrong details or deactivated)."""
+        uid = self.by_email.get((email or "").strip().lower())
+        u = self.user(uid) if uid else None
+        if u and u["active"] and u.get("password_hash") and check_password_hash(u["password_hash"], password or ""):
+            return u
+        return None
 
     def _table_of(self, uid):
         for role, table, db_table in (("patient", self.patients, "patients"),
@@ -564,17 +591,6 @@ class CareMate:
                              if a["status"] == "Completed"),
                     prescriptions=sum(len(s) for s in self.prescriptions.values()))
 
-    # ================================================================ DASHBOARD
-    def dsa_stats(self):
-        return {
-            "Storage": f"Supabase Postgres ({self.db.name})" if self.db else "In memory (no database)",
-            "Patients (HashTable)": self.patients.stats(),
-            "Doctors (HashTable)": self.doctors.stats(),
-            "Stores (HashTable)": self.stores.stats(),
-            "Medicines in Trie": len(self.medicine_trie),
-            "City graph": {"vertices": len(self.city.adj), "roads": len(self.city.edges())},
-        }
-
     # ================================================================ LOAD FROM THE DATABASE
     def restore(self):
         """Rebuild every data structure from the database rows.
@@ -605,12 +621,13 @@ class CareMate:
 
         for p in by_id(db.all("patients")):
             self.add_patient(p["name"], p["age"], p["gender"], p["blood_group"], p["location"],
-                             p["phone"], p["active"], pid=p["id"])
+                             p["phone"], p["active"], pid=p["id"], email=p["email"], password_hash=p["password_hash"])
         for d in by_id(db.all("doctors")):
             self.add_doctor(d["name"], d["specialty"], d["clinic"], float(d["fee"]),
-                            d["auto_accept"], d["phone"], d["active"], did=d["id"])
+                            d["auto_accept"], d["phone"], d["active"], did=d["id"],
+                            email=d["email"], password_hash=d["password_hash"])
         for a in by_id(db.all("admins")):
-            self.add_admin(a["name"], a["active"], aid=a["id"])
+            self.add_admin(a["name"], a["active"], aid=a["id"], email=a["email"], password_hash=a["password_hash"])
 
         for did, rows in group(db.all("doctor_slots"), "doctor_id").items():
             for r in rows:
@@ -669,6 +686,14 @@ def load(db):
 
 
 # ====================================================================== SEED DATA
+# Demo logins (shown in the README):
+DEMO_ACCOUNTS = [
+    ("patient", "siddhant@caremate.in", "siddhant123"),
+    ("doctor", "arjun@caremate.in", "arjun123"),
+    ("admin", "admin@caremate.in", "admin123"),
+]
+
+
 def build_demo(db=None):
     na = CareMate(db)
     today = date.today()
@@ -676,42 +701,37 @@ def build_demo(db=None):
     def d(offset):
         return (today + timedelta(days=offset)).isoformat()
 
-    # --- city graph (Pune-like localities; x,y only for drawing) ---
+    pw = {email: na.hash_password(password) for _, email, password in DEMO_ACCOUNTS}
+
+    # --- map of Kondhwa around VIIT (x,y only for drawing; distances are approximate road km) ---
     places = {
-        "Shivaji Nagar": (300, 200), "Deccan": (220, 260), "Kothrud": (100, 300),
-        "Swargate": (330, 340), "Camp": (460, 260), "Koregaon Park": (540, 170),
-        "Aundh": (170, 80), "Baner": (60, 120), "Hadapsar": (620, 360),
-        "Katraj": (300, 470), "Viman Nagar": (640, 100), "Kalyani Nagar": (560, 60),
+        "VIIT College": (330, 250), "Kondhwa Budruk": (420, 290), "Upper Indira Nagar": (235, 205),
+        "Bibvewadi": (180, 130), "Katraj": (170, 380), "Kondhwa Khurd": (470, 170),
+        "NIBM Road": (565, 205), "Salunke Vihar": (525, 95), "Yewalewadi": (430, 410), "Undri": (600, 330),
     }
     for p, (x, y) in places.items():
         na.add_place(p, x, y)
     roads = [
-        ("Shivaji Nagar", "Deccan", 2.1), ("Shivaji Nagar", "Aundh", 5.0),
-        ("Shivaji Nagar", "Camp", 4.2), ("Shivaji Nagar", "Swargate", 4.0),
-        ("Deccan", "Kothrud", 4.5), ("Deccan", "Swargate", 3.2), ("Kothrud", "Baner", 7.5),
-        ("Aundh", "Baner", 3.4), ("Camp", "Koregaon Park", 3.0), ("Camp", "Swargate", 4.4),
-        ("Camp", "Hadapsar", 7.0), ("Koregaon Park", "Kalyani Nagar", 3.1),
-        ("Koregaon Park", "Viman Nagar", 5.5), ("Kalyani Nagar", "Viman Nagar", 2.6),
-        ("Swargate", "Katraj", 6.2), ("Katraj", "Hadapsar", 10.5), ("Hadapsar", "Viman Nagar", 9.0),
+        ("VIIT College", "Upper Indira Nagar", 1.2), ("VIIT College", "Kondhwa Budruk", 1.0),
+        ("VIIT College", "Katraj", 3.0), ("Upper Indira Nagar", "Bibvewadi", 1.5),
+        ("Bibvewadi", "Katraj", 3.0), ("Kondhwa Budruk", "Kondhwa Khurd", 2.0),
+        ("Kondhwa Budruk", "Yewalewadi", 2.0), ("Kondhwa Khurd", "NIBM Road", 1.8),
+        ("Kondhwa Khurd", "Salunke Vihar", 2.2), ("Salunke Vihar", "NIBM Road", 1.6),
+        ("NIBM Road", "Undri", 2.5), ("Yewalewadi", "Undri", 3.0), ("Katraj", "Yewalewadi", 3.5),
     ]
     for a, b, w in roads:
         na.add_road(a, b, w)
 
     stores = [
-        ("Apollo Pharmacy", "Deccan", 250, 290, 0.6, "24 x 7", "020-2551 0001",
-         ["Paracetamol 500mg", "Amoxicillin 500mg", "Cetirizine 10mg", "Pantoprazole 40mg", "ORS Sachet"]),
-        ("MedPlus", "Camp", 490, 290, 0.8, "8 AM - 11 PM", "020-2633 0002",
-         ["Paracetamol 500mg", "Metformin 500mg", "Amlodipine 5mg", "Atorvastatin 10mg", "Vitamin D3 60K"]),
-        ("Wellness Forever", "Koregaon Park", 570, 200, 0.5, "24 x 7", "020-2615 0003",
-         ["Paracetamol 500mg", "Amoxicillin 500mg", "Azithromycin 500mg", "Cetirizine 10mg",
-          "Pantoprazole 40mg", "Metformin 500mg", "Vitamin D3 60K", "Thyroxine 25mcg"]),
-        ("Noble Chemist", "Kothrud", 70, 330, 0.4, "9 AM - 10 PM", "020-2543 0004",
-         ["Paracetamol 500mg", "Ibuprofen 400mg", "ORS Sachet", "Cetirizine 10mg"]),
-        ("Jan Aushadhi Kendra", "Swargate", 360, 370, 0.7, "9 AM - 9 PM", "020-2444 0005",
-         ["Paracetamol 500mg", "Metformin 500mg", "Amlodipine 5mg", "Amoxicillin 500mg",
-          "Atorvastatin 10mg", "Pantoprazole 40mg", "Thyroxine 25mcg"]),
-        ("Aundh Medicals", "Aundh", 245, 100, 0.3, "8 AM - 10 PM", "020-2588 0006",
-         ["Ibuprofen 400mg", "Cetirizine 10mg", "Azithromycin 500mg", "Vitamin D3 60K"]),
+        ("VIIT Medical", "VIIT College", 300, 285, 0.3, "8 AM - 10 PM", "020-2693 1001",
+         ["Paracetamol 500mg", "Cetirizine 10mg", "ORS Sachet", "Azithromycin 500mg", "Pantoprazole 40mg"]),
+        ("Kondhwa Chemist", "Kondhwa Budruk", 455, 320, 0.4, "9 AM - 11 PM", "020-2693 1002",
+         ["Paracetamol 500mg", "Metformin 500mg", "Atorvastatin 10mg", "Amlodipine 5mg", "Vitamin D3 60K"]),
+        ("NIBM Wellness Pharmacy", "NIBM Road", 600, 240, 0.5, "24 x 7", "020-2693 1003",
+         ["Paracetamol 500mg", "Atorvastatin 10mg", "Metformin 500mg", "Azithromycin 500mg",
+          "Cetirizine 10mg", "Pantoprazole 40mg", "Vitamin D3 60K"]),
+        ("Jan Aushadhi Kendra", "Katraj", 140, 415, 0.6, "9 AM - 9 PM", "020-2693 1004",
+         ["Paracetamol 500mg", "Metformin 500mg", "Atorvastatin 10mg", "Pantoprazole 40mg", "Amoxicillin 500mg"]),
     ]
     for name, near, x, y, km, hours, phone, stock in stores:
         node = f"store:{name}"
@@ -719,7 +739,7 @@ def build_demo(db=None):
         na.add_road(near, node, km)
         na.add_store(name, node, hours, phone, stock)
 
-    # --- medicines (Trie) ---
+    # --- medicines for autocomplete ---
     for m in ["Paracetamol 500mg", "Pantoprazole 40mg", "Amoxicillin 500mg", "Azithromycin 500mg",
               "Amlodipine 5mg", "Atorvastatin 10mg", "Metformin 500mg", "Metoprolol 25mg",
               "Cetirizine 10mg", "Ibuprofen 400mg", "ORS Sachet", "Vitamin D3 60K",
@@ -727,64 +747,42 @@ def build_demo(db=None):
               "Diclofenac 50mg", "Dolo 650", "Thyroxine 25mcg"]:
         na.add_medicine_name(m)
 
-    # --- users ---
-    p1 = na.add_patient("Aarav Sharma", 34, "Male", "B+", "Shivaji Nagar", "98200 11111")
-    p2 = na.add_patient("Priya Deshmukh", 58, "Female", "O+", "Kalyani Nagar", "98200 22222")
-    p3 = na.add_patient("Rohan Kulkarni", 22, "Male", "A-", "Kothrud", "98200 33333")
-    # Dr. Meera accepts bookings by hand; the others auto-accept
-    d1 = na.add_doctor("Dr. Meera Iyer", "General Physician", "City Care Clinic, Deccan",
-                       fee=400, auto_accept=False, phone="98220 44444")
-    d2 = na.add_doctor("Dr. Arjun Patil", "Cardiologist", "HeartLine Hospital, Camp",
-                       fee=900, phone="98220 55555")
-    d3 = na.add_doctor("Dr. Sana Khan", "Endocrinologist", "Sugar & Thyroid Centre, Aundh",
-                       fee=700, phone="98220 66666")
-    na.add_admin("Platform Admin")
+    # --- users: one patient, one doctor, one admin ---
+    p1 = na.add_patient("Siddhant Sancheti", 20, "Male", "B+", "VIIT College", "90000 00001",
+                        email="siddhant@caremate.in", password_hash=pw["siddhant@caremate.in"])
+    d1 = na.add_doctor("Dr. Arjun Patil", "General Physician", "CareMate Clinic, Kondhwa Budruk",
+                       fee=500, auto_accept=False, phone="90000 00002",
+                       email="arjun@caremate.in", password_hash=pw["arjun@caremate.in"])
+    na.add_admin("Admin", email="admin@caremate.in", password_hash=pw["admin@caremate.in"])
 
-    # --- each doctor picks the slots (and fee) for every day ---
+    # --- Dr. Arjun's slots for the next three days ---
     for day in (1, 2, 3):
-        na.set_day_slots(d1, d(day), ["10:00", "11:00", "12:00", "17:00"], 400)
-    for day in (1, 3):
-        na.set_day_slots(d2, d(day), ["09:30", "15:00"], 900)
-    for day in (2, 4):
-        na.set_day_slots(d3, d(day), ["11:30", "16:30"], 700)
+        na.set_day_slots(d1, d(day), ["10:00", "11:00", "12:00", "17:00"], 500)
 
-    # --- reports (some uploaded by the doctor after a test) ---
-    na.add_report(p1, "Complete Blood Count", "Blood Test", d(-120), "Dr. Meera Iyer", "Hb 14.2, WBC normal")
-    na.add_report(p1, "Chest X-Ray PA view", "X-Ray", d(-95), "Dr. Meera Iyer", "No active lesion")
+    # --- reports, each with a sample PDF ---
+    na.add_report(p1, "Complete Blood Count", "Blood Test", d(-120), "Dr. Arjun Patil", "Hb 14.2, WBC normal")
+    na.add_report(p1, "Chest X-Ray PA view", "X-Ray", d(-95), "Dr. Arjun Patil", "No active lesion")
     na.add_report(p1, "Lipid Profile", "Blood Test", d(-40), "Dr. Arjun Patil",
-                  "LDL 142 mg/dL - borderline high", uploaded_by=d2)
-    na.add_report(p1, "ECG - resting", "ECG", d(-40), "Dr. Arjun Patil", "Normal sinus rhythm", uploaded_by=d2)
-    na.add_report(p1, "HbA1c", "Blood Test", d(-10), "Dr. Sana Khan", "HbA1c 6.1% - prediabetic range")
-    na.add_report(p2, "Thyroid Profile", "Blood Test", d(-60), "Dr. Sana Khan", "TSH 5.8 - mildly raised")
-    na.add_report(p2, "Knee MRI", "MRI / CT Scan", d(-30), "Dr. Meera Iyer", "Grade 2 osteoarthritis")
-    na.add_report(p3, "Urine Routine", "Urine Test", d(-5), "Dr. Meera Iyer", "Normal")
-    for r in na.report_by_id.values():           # a 2-page sample PDF for every demo report
+                  "LDL 142 mg/dL - borderline high", uploaded_by=d1)
+    na.add_report(p1, "ECG - resting", "ECG", d(-40), "Dr. Arjun Patil", "Normal sinus rhythm", uploaded_by=d1)
+    na.add_report(p1, "HbA1c", "Blood Test", d(-10), "Dr. Arjun Patil", "HbA1c 6.1% - prediabetic range")
+    for r in na.report_by_id.values():
         na.attach_file(r["id"], ensure_sample_file(r, na.patients.get(r["patient_id"])))
 
-    # --- appointments (mixed priorities to show the heap) ---
+    # --- appointments: one confirmed visit, one request waiting for Dr. Arjun ---
     s = na.free_slots.get(d1)
-    _, a1 = na.book_appointment(p2, d1, s[0], 3, "Knee pain follow-up")
-    _, a2 = na.book_appointment(p3, d1, s[0], 2, "High fever for 3 days")   # s[0] is now the next slot
+    _, a1 = na.book_appointment(p1, d1, s[0], 3, "Review lipid profile")
     na.accept_appointment(a1["id"], d1)
-    na.accept_appointment(a2["id"], d1)
-    na.book_appointment(p1, d1, s[-1], 3, "Persistent cough")               # left Pending for Dr. Meera
-    na.book_appointment(p1, d2, na.free_slots.get(d2)[0], 3, "Review lipid profile")
+    na.book_appointment(p1, d1, s[5], 3, "Persistent cough")
 
     # --- prescriptions ---
     na.add_prescription(p1, d1, [
         dict(medicine="Paracetamol 500mg", dose="1 tablet", frequency="Thrice a day", days=3),
         dict(medicine="Cetirizine 10mg", dose="1 tablet", frequency="At bedtime", days=5),
     ], "Viral fever. Drink plenty of fluids.", d(-20))
-    na.add_prescription(p1, d2, [
+    na.add_prescription(p1, d1, [
         dict(medicine="Atorvastatin 10mg", dose="1 tablet", frequency="At bedtime", days=30),
         dict(medicine="Metformin 500mg", dose="1 tablet", frequency="Twice a day", days=30),
     ], "Low-fat diet, 30 min walk daily. Repeat lipid profile after 3 months.", d(-9))
-    na.add_prescription(p2, d1, [
-        dict(medicine="Diclofenac 50mg", dose="1 tablet", frequency="Twice a day", days=5),
-        dict(medicine="Pantoprazole 40mg", dose="1 tablet", frequency="Once a day", days=5),
-    ], "Take after food.", d(-28))
-    na.add_prescription(p2, d3, [
-        dict(medicine="Thyroxine 25mcg", dose="1 tablet", frequency="Once a day", days=60),
-    ], "Empty stomach, 30 min before breakfast. Recheck TSH in 6 weeks.", d(-2))
 
     return na

@@ -8,3 +8,4 @@ uploads/*
 
 __pycache__/
 venv/
+secret_key.txt

@@ -1,0 +1,95 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 1435 >>
+stream
+BT /F2 16 Tf 50 800 Td (CareMate Diagnostics) Tj ET
+BT /F1 9 Tf 400 800 Td (SAMPLE REPORT - demo data) Tj ET
+BT /F1 9 Tf 50 784 Td (Pune  |  This file was generated for the CareMate course demo.) Tj ET
+0.6 G 0.5 w 50 775 m 545 775 l S
+BT /F2 10 Tf 50 756 Td (Patient: Siddhant Sancheti) Tj ET
+BT /F1 10 Tf 300 756 Td (Age / Sex: 20 / Male) Tj ET
+BT /F1 10 Tf 50 740 Td (Report date: 2026-10-20) Tj ET
+BT /F1 10 Tf 300 740 Td (Referred by: Dr. Arjun Patil) Tj ET
+0.6 G 0.5 w 50 730 m 545 730 l S
+BT /F1 9 Tf 480 40 Td (Page 1 of 2) Tj ET
+BT /F2 14 Tf 50 705 Td (HbA1c) Tj ET
+BT /F1 10 Tf 50 688 Td (Department of Biochemistry) Tj ET
+BT /F2 10 Tf 50 660 Td (Test) Tj ET
+BT /F2 10 Tf 260 660 Td (Result) Tj ET
+BT /F2 10 Tf 360 660 Td (Unit) Tj ET
+BT /F2 10 Tf 430 660 Td (Reference range) Tj ET
+0.6 G 0.5 w 50 652 m 545 652 l S
+BT /F1 10 Tf 50 632 Td (HbA1c \(glycated haemoglobin\)) Tj ET
+BT /F2 10 Tf 260 632 Td (6.1  H) Tj ET
+BT /F1 10 Tf 360 632 Td (%) Tj ET
+BT /F1 10 Tf 430 632 Td (< 5.7) Tj ET
+BT /F1 10 Tf 50 610 Td (Estimated average glucose) Tj ET
+BT /F2 10 Tf 260 610 Td (128  H) Tj ET
+BT /F1 10 Tf 360 610 Td (mg/dL) Tj ET
+BT /F1 10 Tf 430 610 Td (< 117) Tj ET
+BT /F1 10 Tf 50 588 Td (Fasting plasma glucose) Tj ET
+BT /F2 10 Tf 260 588 Td (108  H) Tj ET
+BT /F1 10 Tf 360 588 Td (mg/dL) Tj ET
+BT /F1 10 Tf 430 588 Td (70 - 100) Tj ET
+0.6 G 0.5 w 50 574 m 545 574 l S
+BT /F1 9 Tf 50 554 Td (H = above the reference range.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 1148 >>
+stream
+BT /F2 16 Tf 50 800 Td (CareMate Diagnostics) Tj ET
+BT /F1 9 Tf 400 800 Td (SAMPLE REPORT - demo data) Tj ET
+BT /F1 9 Tf 50 784 Td (Pune  |  This file was generated for the CareMate course demo.) Tj ET
+0.6 G 0.5 w 50 775 m 545 775 l S
+BT /F2 10 Tf 50 756 Td (Patient: Siddhant Sancheti) Tj ET
+BT /F1 10 Tf 300 756 Td (Age / Sex: 20 / Male) Tj ET
+BT /F1 10 Tf 50 740 Td (Report date: 2026-10-20) Tj ET
+BT /F1 10 Tf 300 740 Td (Referred by: Dr. Arjun Patil) Tj ET
+0.6 G 0.5 w 50 730 m 545 730 l S
+BT /F1 9 Tf 480 40 Td (Page 2 of 2) Tj ET
+BT /F2 14 Tf 50 705 Td (Interpretation) Tj ET
+BT /F1 11 Tf 50 680 Td (HbA1c 5.7 - 6.4 % is the prediabetic range.) Tj ET
+BT /F1 11 Tf 50 662 Td (Lifestyle changes advised; repeat HbA1c in 3 months.) Tj ET
+BT /F2 14 Tf 50 600 Td (Notes) Tj ET
+BT /F1 10 Tf 50 578 Td (Summary on file: HbA1c 6.1% - prediabetic range) Tj ET
+BT /F1 10 Tf 50 560 Td (Results relate only to the sample tested. Reference ranges vary by lab.) Tj ET
+0.6 G 0.5 w 50 480 m 250 480 l S
+BT /F1 10 Tf 50 465 Td (Consultant pathologist / radiologist) Tj ET
+BT /F1 9 Tf 50 420 Td (SAMPLE - generated demo file, not a real medical report.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000266 00000 n 
+0000001753 00000 n 
+0000001889 00000 n 
+0000003089 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+3225
+%%EOF

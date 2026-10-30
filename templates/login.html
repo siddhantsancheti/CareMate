@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block auth %}
+<form class="card form auth-card" method="post">
+  <h1>Log in</h1>
+  <p class="lede">Your reports, doctors and medicines around Kondhwa, in one place.</p>
+  <label>Email<input type="email" name="email" value="{{ email }}" required autofocus autocomplete="email"></label>
+  <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+  <button class="btn">Log in</button>
+  <p class="hint">New to CareMate? <a href="{{ url_for('signup') }}">Create an account</a> as a patient or a doctor.</p>
+</form>
+{% endblock %}

@@ -6,7 +6,6 @@
     <p class="eyebrow">Bookings</p>
     <h1>{{ me.name }}</h1>
     <p class="lede">{{ me.clinic }}</p>
-    <div class="ds-bar"><span class="ds">Linked list (requests)</span><span class="ds">Min-Heap (patient queue)</span><span class="ds">Queue (waiting list)</span></div>
   </div>
   <form class="card switch-card" method="post" action="{{ url_for('toggle_auto_accept') }}">
     <input type="hidden" name="on" value="{{ '0' if me.auto_accept else '1' }}">
@@ -32,18 +31,18 @@
   </div>
 
   <div class="card">
-    <h2>Patient queue <span class="ds">heap order</span></h2>
+    <h2>Patient queue</h2>
     <ol class="queue">
     {% for a in queue %}
       <li class="{{ 'next' if loop.first }}"><span class="pill p{{ a.priority }}">{{ a.priority_label }}</span>
         <b>{{ patient_name(a.patient_id) }}</b><small>{{ a.slot }} · {{ a.reason }}</small></li>
     {% else %}<li class="muted">No confirmed patients.</li>{% endfor %}
     </ol>
-    <form method="post" action="{{ url_for('call_next') }}"><button class="btn small" {{ 'disabled' if not queue }}>Call next patient (heap pop)</button></form>
+    <form method="post" action="{{ url_for('call_next') }}"><button class="btn small" {{ 'disabled' if not queue }}>Call next patient</button></form>
   </div>
 
   <div class="card">
-    <h2>Waiting list <span class="ds">FIFO</span></h2>
+    <h2>Waiting list</h2>
     <ol class="queue">
     {% for w in waiting %}
       <li><b>{{ patient_name(w.patient_id) }}</b><small>{{ w.reason }}</small></li>
@@ -64,7 +63,7 @@
     <a class="link" href="{{ url_for('doctor_slots') }}">Manage slots &amp; fees →</a>
   </div>
   <div class="card">
-    <h2>Recent activity <span class="ds">Stack</span></h2>
+    <h2>Recent activity</h2>
     <ul class="log">{% for a in activity %}<li>{{ a }}</li>{% else %}<li class="muted">Nothing yet.</li>{% endfor %}</ul>
   </div>
 </section>

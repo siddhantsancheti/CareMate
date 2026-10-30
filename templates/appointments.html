@@ -4,7 +4,6 @@
 <header class="page-head">
   <p class="eyebrow">Appointments</p>
   <h1>Book a doctor. Urgent cases are seen first.</h1>
-  <div class="ds-bar"><span class="ds">Min-Heap Priority Queue</span><span class="ds">Linked list (requests)</span><span class="ds">Queue (waiting list)</span><span class="ds">Binary Search on slots</span></div>
 </header>
 
 <section class="grid-side">
@@ -24,7 +23,7 @@
     </label>
     <label>Reason<input name="reason" maxlength="255" placeholder="e.g. Fever and cough"></label>
     <button class="btn">Book appointment</button>
-    <p class="hint">The fee is paid at the clinic. If no slot is free you join the doctor's waiting list (FIFO) and automatically get the next slot that opens.</p>
+    <p class="hint">The fee is paid at the clinic. If no slot is free you join the doctor's waiting list and automatically get the next slot that opens.</p>
   </form>
 
   <div class="stack-gap">
@@ -48,7 +47,7 @@
     </div>
     {% if waiting %}
     <div class="card">
-      <h2>On the waiting list <span class="ds">FIFO queue</span></h2>
+      <h2>On the waiting list</h2>
       <ul class="log">{% for w in waiting %}<li>{{ doctor_name(w.doctor_id) }}: {{ w.reason }}</li>{% endfor %}</ul>
     </div>
     {% endif %}

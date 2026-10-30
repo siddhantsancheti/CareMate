@@ -4,7 +4,6 @@
 <header class="page-head">
   <p class="eyebrow">Admin · Insights</p>
   <h1>How the platform is being used.</h1>
-  <div class="ds-bar"><span class="ds">Hash Table (counting)</span><span class="ds">Min-Heap top-k</span></div>
 </header>
 
 <section class="stats-row">
@@ -42,7 +41,7 @@
 </section>
 
 <section class="card" style="margin-top:18px">
-  <h2>Platform activity <span class="ds">Stack</span></h2>
+  <h2>Platform activity</h2>
   <ul class="log">{% for a in activity %}<li>{{ a }}</li>{% endfor %}</ul>
   <a class="link" href="{{ url_for('admin_users') }}">Manage users →</a>
 </section>

@@ -32,7 +32,6 @@ code { background: var(--teal-2); padding: 1px 6px; border-radius: 6px; }
 .nav a i { font-style: normal; width: 20px; text-align: center; opacity: .8; }
 .nav a:hover { background: #1f403c; }
 .nav a.on { background: #fff; color: var(--ink); }
-.nav a.hood { margin-top: 10px; border-top: 1px solid #2b4c47; border-radius: 0 0 10px 10px; padding-top: 14px; }
 .who { margin-top: auto; background: #1f403c; border-radius: 12px; padding: 14px; }
 .who label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #9fb8b2; }
 .who select { width: 100%; margin: 6px 0; background: #fff; }
@@ -52,9 +51,6 @@ h3 { font-size: 15px; margin: 0 0 4px; }
 .muted { color: var(--ink-2); }
 small { color: var(--ink-2); }
 
-.ds-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.ds { font: 600 11.5px var(--sans); background: var(--paper); border: 1px dashed var(--teal); color: var(--teal); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-h2 .ds, h3 .ds { font-size: 10.5px; }
 .count { background: var(--teal-2); color: var(--teal); font-size: 12px; padding: 1px 8px; border-radius: 999px; }
 
 /* ---------- layout ---------- */
@@ -138,9 +134,6 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outl
 .tbl td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .tbl td small { display: block; }
 .tbl.compact td, .tbl.compact th { padding: 6px 8px; }
-.tbl.dsa td:first-child { font-weight: 600; }
-.tbl.dsa td:nth-child(4) { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--teal); white-space: nowrap; }
-.tbl.dsa td:last-child { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; color: var(--ink-2); }
 
 /* ---------- doctor desk ---------- */
 .desk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
@@ -200,7 +193,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outl
 .stock { margin: 8px 0 0; font-size: 13px; font-weight: 600; }
 .stock.ok { color: var(--green); } .stock.partial { color: var(--amber); }
 
-/* ---------- dsa page ---------- */
+/* ---------- stat cards ---------- */
 .stat h3 { font-size: 13px; color: var(--ink-2); margin-bottom: 10px; }
 .kv { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
 .big { font: 40px var(--serif); color: var(--teal); }
@@ -215,7 +208,6 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outl
   .side { position: static; height: auto; padding: 14px 16px; gap: 12px; min-width: 0; }
   .nav { flex-direction: row; overflow-x: auto; }
   .nav a { white-space: nowrap; padding: 8px 10px; }
-  .nav a.hood { margin: 0; border: 0; padding: 8px 10px; border-radius: 10px; }
   .who { margin: 0; display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
   .who select { margin: 0; flex: 1; }
   .who p { display: none; }
@@ -227,7 +219,6 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal); outl
   .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .report { grid-template-columns: 52px 1fr; }
   .r-act { grid-column: 1 / -1; }
-  .tbl.dsa { display: block; overflow-x: auto; }
 }
 
 /* ---------- roles ---------- */
@@ -300,3 +291,18 @@ details.add summary::-webkit-details-marker { display: none; }
 .doc-view { width: 100%; height: 82vh; min-height: 480px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: block; }
 .doc-img { max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius); display: block; }
 .attach { margin-top: 16px; }
+
+/* ---------- login / sign up ---------- */
+.auth { min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 48px 16px; }
+.auth-brand { color: var(--ink); }
+.auth-brand small { color: var(--ink-2); }
+.auth-card { width: 100%; max-width: 460px; }
+.auth-card h1 { font-size: 30px; margin: 0; }
+.auth .flash { width: 100%; max-width: 460px; margin: 0; }
+.role-pick { display: flex; gap: 18px; }
+.check { flex-direction: row !important; align-items: center; gap: 8px !important; font-weight: 500 !important; color: var(--ink) !important; }
+fieldset { border: 1px dashed var(--line); border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px 14px; }
+fieldset legend { font-size: 12.5px; color: var(--ink-2); padding: 0 6px; }
+[hidden] { display: none !important; }
+.who-name { display: block; color: #fff; margin: 4px 0 2px; }
+.btn.ghost-light { background: transparent; color: #dfeae6; border: 1px solid #3d5f59; margin-top: 10px; }

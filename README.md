@@ -11,7 +11,7 @@ Data is **stored in Supabase (Postgres)** so it survives restarts, but every que
 | **Reports** | Upload reports (PDF/PNG/JPG), search, filter by type, sort, find reports between two dates or on an exact date, open files, delete their own uploads. Reports a doctor uploads appear here too |
 | **Appointments** | See each doctor's free slots with the fee, pick an urgency (Emergency / Urgent / Routine), book, cancel. If a doctor is full, join the waiting list and get the next slot that opens |
 | **Prescriptions** | A doctor's prescription appears the moment it's sent. Recent prescriptions are listed with *New* / *Active* badges, any one can be opened, and today's reminders come from every medicine still running |
-| **Nearest medical stores** | Shortest road distance to every store, the route on a map, and which stores stock all the medicines they're taking now |
+| **Nearest medical stores** | Shortest road distance to every store around VIIT, Kondhwa, the route on a map, and which stores stock all the medicines they're taking now |
 
 ### Doctors
 | Feature | What they can do |
@@ -26,7 +26,18 @@ Data is **stored in Supabase (Postgres)** so it survives restarts, but every que
 | **Insights** | Most booked doctors, most prescribed medicines, totals (patients, doctors, appointments, fees from completed visits), platform activity |
 | **Users** | Add, edit, deactivate and reactivate patients, doctors and admins. Deactivated users can't sign in or be booked; their records are kept |
 
-> **Sign-in is a demo switcher** ("Signed in as" in the sidebar) with no passwords, so you can jump between roles during a presentation. Real logins would be needed before real patients use it.
+### Accounts
+Everyone logs in with an email and password (passwords are stored hashed). **Anyone can sign up** as a patient or a doctor from the login page; admins are added by an admin.
+
+Demo accounts:
+
+| Role | Email | Password |
+|---|---|---|
+| Patient (Siddhant Sancheti) | `siddhant@caremate.in` | `siddhant123` |
+| Doctor (Dr. Arjun Patil) | `arjun@caremate.in` | `arjun123` |
+| Admin | `admin@caremate.in` | `admin123` |
+
+The map covers Kondhwa around VIIT (VIIT College, Kondhwa Budruk, Kondhwa Khurd, NIBM Road, Upper Indira Nagar, Bibvewadi, Katraj, Yewalewadi, Undri, Salunke Vihar) with 4 medical stores. Distances are approximate.
 
 ## Which data structure powers what
 | Feature | Data structure / algorithm | Complexity | File |
@@ -39,8 +50,6 @@ Data is **stored in Supabase (Postgres)** so it survives restarts, but every que
 | Prescription history | Stack (LIFO) | O(1) | `dsa/queue_stack.py` |
 | Medicine autocomplete | Trie | O(P + K) | `dsa/trie.py` |
 | Nearest medical store | Graph + Dijkstra | O((V+E) log V) | `dsa/graph.py` |
-
-The **"Under the hood"** page in the app lists every structure and algorithm with live stats.
 
 ## How to run (Windows)
 ```bash
@@ -58,7 +67,7 @@ Without `supabase_config.ini` the app runs **in memory** with demo data and star
 ```mermaid
 flowchart TB
     %% ---------- Users ----------
-    subgraph Users["👥 Users (demo role switcher)"]
+    subgraph Users["👥 Users (email + password login)"]
         P["🧑 Patient"]
         D["🩺 Doctor"]
         A["🛡️ Admin"]

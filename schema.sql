@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS admins (
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+-- login details (added after the first version, so ALTER keeps existing databases working)
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS email         VARCHAR(120);
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);   -- never the password itself
+ALTER TABLE doctors  ADD COLUMN IF NOT EXISTS email         VARCHAR(120);
+ALTER TABLE doctors  ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+ALTER TABLE admins   ADD COLUMN IF NOT EXISTS email         VARCHAR(120);
+ALTER TABLE admins   ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+
 -- every slot a doctor offers, with its fee. Which ones are still free is worked out from appointments
 CREATE TABLE IF NOT EXISTS doctor_slots (
     doctor_id VARCHAR(10)  NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,

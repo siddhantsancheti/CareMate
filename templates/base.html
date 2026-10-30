@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% if me %}
 <div class="shell">
   <aside class="side">
     <a class="brand" href="{{ url_for('home') }}">
@@ -31,21 +32,16 @@
         <a href="{{ url_for('home') }}" class="{{ 'on' if ep=='home' }}"><i>▲</i>Insights</a>
         <a href="{{ url_for('admin_users') }}" class="{{ 'on' if ep=='admin_users' }}"><i>☰</i>Users</a>
       {% endif %}
-      <a href="{{ url_for('under_the_hood') }}" class="{{ 'on' if ep=='under_the_hood' }} hood"><i>{ }</i>Under the hood</a>
     </nav>
-    <form class="who" method="post" action="{{ url_for('switch_user') }}">
-      <label for="uid">Signed in as <span class="role-tag">{{ role }}</span></label>
-      <select id="uid" name="user_id" onchange="this.form.submit()">
-        <optgroup label="Patients">{% for u in switch_patients %}<option value="{{ u.id }}" {{ 'selected' if u.id==me.id }}>{{ u.name }}</option>{% endfor %}</optgroup>
-        <optgroup label="Doctors">{% for u in switch_doctors %}<option value="{{ u.id }}" {{ 'selected' if u.id==me.id }}>{{ u.name }}</option>{% endfor %}</optgroup>
-        <optgroup label="Admins">{% for u in switch_admins %}<option value="{{ u.id }}" {{ 'selected' if u.id==me.id }}>{{ u.name }}</option>{% endfor %}</optgroup>
-      </select>
+    <form class="who" method="post" action="{{ url_for('logout') }}">
+      <label>Signed in <span class="role-tag">{{ role }}</span></label>
+      <b class="who-name">{{ me.name }}</b>
       <p>
-        {% if role == 'patient' %}{{ me.age }} yrs · {{ me.gender }} · {{ me.blood_group }}<br>{{ me.location }}, Pune
+        {% if role == 'patient' %}{{ me.age }} yrs · {{ me.gender }} · {{ me.blood_group }}<br>{{ me.location }}, Kondhwa
         {% elif role == 'doctor' %}{{ me.specialty }}<br>{{ me.clinic }}
         {% else %}Manages users and sees platform insights{% endif %}
       </p>
-      <noscript><button class="btn small">Switch</button></noscript>
+      <button class="btn small ghost-light">Sign out</button>
     </form>
   </aside>
 
@@ -56,6 +52,15 @@
     {% block content %}{% endblock %}
   </main>
 </div>
+{% else %}
+<main class="auth">
+  <a class="brand auth-brand" href="{{ url_for('login') }}"><span class="brand-mark">+</span><span>CareMate<small>your nurse assistant</small></span></a>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block auth %}{% endblock %}
+</main>
+{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

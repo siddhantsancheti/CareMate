@@ -4,7 +4,6 @@
 <header class="page-head">
   <p class="eyebrow">Nearest medical stores</p>
   <h1>Find the closest store with your medicines.</h1>
-  <div class="ds-bar"><span class="ds">Weighted Graph (adjacency list)</span><span class="ds">Dijkstra + Min-Heap</span><span class="ds">Quick Sort</span><span class="ds">Hash Set (stock check)</span></div>
 </header>
 
 <form class="card filters" method="get">
@@ -21,7 +20,7 @@
     {% set path = chosen.path if chosen else [] %}
     {% set ns = namespace(on=[]) %}
     {% for i in range(path|length - 1) %}{% set ns.on = ns.on + [path[i] ~ '|' ~ path[i+1], path[i+1] ~ '|' ~ path[i]] %}{% endfor %}
-    <svg viewBox="20 20 680 490" class="map" role="img" aria-label="City road map">
+    <svg viewBox="100 55 560 400" class="map" role="img" aria-label="Road map of Kondhwa around VIIT">
       {% for u,v,w in graph.edges %}
         {% set a = graph.pos[u] %}{% set b = graph.pos[v] %}
         {% set hot = (u ~ '|' ~ v) in ns.on %}

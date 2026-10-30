@@ -4,7 +4,6 @@
 <header class="page-head">
   <p class="eyebrow">Reports library</p>
   <h1>All your medical reports, in one place.</h1>
-  <div class="ds-bar"><span class="ds">Doubly Linked List</span><span class="ds">BST (by date, height {{ bst_height }})</span><span class="ds">Merge Sort</span><span class="ds">Binary Search</span><span class="ds">Linear Search</span></div>
 </header>
 
 <section class="grid-side">
@@ -36,10 +35,10 @@
     </form>
     <form class="filters slim" method="get">
       <label class="inline">Find report on exact date<input type="date" name="on_date" value="{{ args.get('on_date','') }}"></label>
-      <button class="btn ghost small">Binary search</button>
+      <button class="btn ghost small">Find</button>
     </form>
 
-    <p class="algo">⚙ {{ algo }} · {{ items|length }} of {{ total }} reports</p>
+    <p class="algo">Showing {{ items|length }} of {{ total }} reports</p>
 
     <div class="report-list">
     {% for r in items %}

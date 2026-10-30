@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block auth %}
+<form class="card form auth-card" method="post">
+  <h1>Create an account</h1>
+  <div class="role-pick">
+    <label class="check"><input type="radio" name="role" value="patient" {{ 'checked' if form.get('role', 'patient') == 'patient' }}> I'm a patient</label>
+    <label class="check"><input type="radio" name="role" value="doctor" {{ 'checked' if form.get('role') == 'doctor' }}> I'm a doctor</label>
+  </div>
+  <label>Full name<input name="name" required maxlength="100" value="{{ form.get('name', '') }}" autocomplete="name"></label>
+  <label>Email<input type="email" name="email" required maxlength="120" value="{{ form.get('email', '') }}" autocomplete="email"></label>
+  <div class="row2">
+    <label>Password<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
+    <label>Confirm password<input type="password" name="confirm" required minlength="6" autocomplete="new-password"></label>
+  </div>
+  <label>Phone<input name="phone" maxlength="20" value="{{ form.get('phone', '') }}" autocomplete="tel"></label>
+
+  <fieldset class="for-patient">
+    <legend>About you</legend>
+    <div class="row2">
+      <label>Age<input type="number" name="age" min="0" max="130" value="{{ form.get('age', '') }}"></label>
+      <label>Gender<select name="gender">{% for g in ['Female', 'Male', 'Other'] %}<option {{ 'selected' if form.get('gender') == g }}>{{ g }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row2">
+      <label>Blood group<select name="blood_group">{% for b in ['A+','A-','B+','B-','O+','O-','AB+','AB-'] %}<option {{ 'selected' if form.get('blood_group') == b }}>{{ b }}</option>{% endfor %}</select></label>
+      <label>Area<select name="location">{% for pl in places %}<option {{ 'selected' if form.get('location') == pl }}>{{ pl }}</option>{% endfor %}</select></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="for-doctor">
+    <legend>Your practice</legend>
+    <label>Specialty<input name="specialty" maxlength="100" value="{{ form.get('specialty', '') }}" placeholder="e.g. General Physician"></label>
+    <label>Clinic / hospital<input name="clinic" maxlength="150" value="{{ form.get('clinic', '') }}" placeholder="e.g. Sai Clinic, Kondhwa Khurd"></label>
+    <label>Consultation fee (₹)<input type="number" name="fee" min="0" max="100000" step="50" value="{{ form.get('fee', '500') }}"></label>
+  </fieldset>
+
+  <button class="btn">Create account</button>
+  <p class="hint">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  // show only the fields for the chosen role
+  const sync = () => {
+    const doctor = document.querySelector('input[name=role]:checked').value === 'doctor';
+    document.querySelector('.for-doctor').hidden = !doctor;
+    document.querySelector('.for-patient').hidden = doctor;
+  };
+  document.querySelectorAll('input[name=role]').forEach(r => r.addEventListener('change', sync));
+  sync();
+</script>
+{% endblock %}

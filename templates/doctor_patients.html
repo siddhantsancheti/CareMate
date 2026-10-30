@@ -5,7 +5,6 @@
   <p class="eyebrow">My patients</p>
   <h1>Reports, tests and prescriptions.</h1>
   <p class="lede">A patient appears here once you accept their booking. Prescriptions reach the patient the moment you save them.</p>
-  <div class="ds-bar"><span class="ds">Linked list + BST (reports)</span><span class="ds">Stack (prescriptions)</span><span class="ds">Trie (autocomplete)</span></div>
 </header>
 
 <section class="grid-side">
@@ -60,15 +59,15 @@
         </div>
         <button type="button" class="btn ghost small" id="add-med">+ Add medicine</button>
         <label>Advice<textarea name="notes" rows="2" placeholder="e.g. Take after food"></textarea></label>
-        <button class="btn">Send prescription (push)</button>
+        <button class="btn">Send prescription</button>
       </form>
     </div>
 
     <div class="card">
       <div class="desk-head">
-        <h2>Prescription history <span class="ds">top of stack first</span></h2>
+        <h2>Prescription history</h2>
         <form method="post" action="{{ url_for('undo_prescription', pid=patient.id) }}" onsubmit="return confirm('Withdraw the newest prescription?')">
-          <button class="btn danger small" {{ 'disabled' if not history or history[0].doctor_id != me.id }}>Withdraw newest (pop)</button></form>
+          <button class="btn danger small" {{ 'disabled' if not history or history[0].doctor_id != me.id }}>Withdraw newest</button></form>
       </div>
       {% for rx in history %}
         <article class="rx {{ 'top' if loop.first }}">
@@ -96,7 +95,7 @@
       <input name="days" type="number" min="1" max="365" value="5">`;
     document.getElementById('meds').appendChild(row);
   };
-  // Trie-powered autocomplete: every keystroke calls /api/medicines?q=prefix
+  // autocomplete: every keystroke asks /api/medicines?q=prefix
   document.addEventListener('input', async e => {
     if (!e.target.classList.contains('med-input')) return;
     const list = e.target.nextElementSibling, q = e.target.value.trim();
