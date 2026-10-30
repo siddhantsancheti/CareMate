@@ -48,8 +48,8 @@ The map covers Kondhwa around VIIT (VIIT College, Kondhwa Budruk, Kondhwa Khurd,
 | Doctor's patient queue | Min-Heap Priority Queue | O(log n) | `dsa/heap.py` |
 | Waiting list | Queue (FIFO) | O(1) | `dsa/queue_stack.py` |
 | Prescription history | Stack (LIFO) | O(1) | `dsa/queue_stack.py` |
-| Medicine autocomplete | Trie | O(P + K) | `dsa/trie.py` |
-| Nearest medical store | Graph + Dijkstra | O((V+E) log V) | `dsa/graph.py` |
+| Medicine autocomplete | Tree | O(P + K) | `dsa/trie.py` |
+| Nearest medical store | Graph | O((V+E) log V) | `dsa/graph.py` |
 
 ## How to run (Windows)
 ```bash
