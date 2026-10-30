@@ -1,4 +1,4 @@
-"""Data structures & algorithms written from scratch for the Nurse Assistant app."""
+"""Data structures & algorithms written from scratch for the CareMate app."""
 
 from .linked_list import DoublyLinkedList
 from .hash_table import HashTable

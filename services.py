@@ -1,6 +1,6 @@
 """
 Service layer: all app data lives here, inside OUR OWN data structures.
-Flask routes (app.py) only call methods on the `NurseAssistant` object.
+Flask routes (app.py) only call methods on the `CareMate` object.
 
 Three kinds of users: patients, doctors and admins.
 
@@ -43,7 +43,7 @@ def now_slot():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
-class NurseAssistant:
+class CareMate:
     def __init__(self, db=None):
         self._ids = count(1)
         self.db = db                        # database storage (None = in memory only)
@@ -663,14 +663,14 @@ def load(db):
         return build_demo()
     if db.is_empty():
         return build_demo(db)        # every add_* call also inserts into the database
-    na = NurseAssistant(db)
+    na = CareMate(db)
     na.restore()
     return na
 
 
 # ====================================================================== SEED DATA
 def build_demo(db=None):
-    na = NurseAssistant(db)
+    na = CareMate(db)
     today = date.today()
 
     def d(offset):
