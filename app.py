@@ -22,8 +22,11 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template, requ
                    send_from_directory, session, url_for)
 from werkzeug.utils import secure_filename
 
+from appointments import DAY_TIMES, PRIORITY_LABELS
+from caremate import load
 from db import connect_from_config
-from services import DAY_TIMES, FREQ_TIMES, PRIORITY_LABELS, REPORT_TYPES, load
+from prescriptions import FREQ_TIMES
+from reports import REPORT_TYPES
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -127,7 +130,7 @@ def remove_upload(filename):
 def inject_globals():
     role, me = current_user()
     return dict(role=role, me=me,
-                doctor_name=lambda did: na.doctors.get(did)["name"] if na.doctors.contains(did) else "Doctor",
+                doctor_name=lambda did: na.doctors.get(did)["name"] if did in na.doctors else "Doctor",
                 patient_name=lambda pid: na.patients.get(pid)["name"],
                 today=date.today().isoformat())
 
@@ -448,7 +451,7 @@ def doctor_slots():
 
 def doctor_patient_or_404(pid):
     me = current_user()[1]
-    if not na.patients.contains(pid) or not na.has_access(me["id"], pid):
+    if pid not in na.patients or not na.has_access(me["id"], pid):
         abort(404)
     return me, na.patients.get(pid)
 

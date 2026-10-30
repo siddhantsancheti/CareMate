@@ -2,7 +2,7 @@
 Database storage layer (Supabase Postgres)
 ------------------------------------------
 A thin wrapper over psycopg. It only saves and loads rows; it never answers
-app queries (our data structures in dsa/ do that).
+app queries (our own data structures do that).
 
 Connection details come from supabase_config.ini (copy supabase_config.example.ini).
 If that file is missing, the app runs fully in memory.

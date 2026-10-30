@@ -39,17 +39,21 @@ Demo accounts:
 
 The map covers Kondhwa around VIIT (VIIT College, Kondhwa Budruk, Kondhwa Khurd, NIBM Road, Upper Indira Nagar, Bibvewadi, Katraj, Yewalewadi, Undri, Salunke Vihar) with 4 medical stores. Distances are approximate.
 
-## Which data structure powers what
-| Feature | Data structure / algorithm | Complexity | File |
-|---|---|---|---|
-| Patients & doctors lookup | Hash Table | O(1) avg | `dsa/hash_table.py` |
-| Reports library | Doubly Linked List | insert O(1) | `dsa/linked_list.py` |
-| Reports between two dates | Binary Search Tree | O(h + k) | `dsa/bst.py` |
-| Doctor's patient queue | Min-Heap Priority Queue | O(log n) | `dsa/heap.py` |
-| Waiting list | Queue (FIFO) | O(1) | `dsa/queue_stack.py` |
-| Prescription history | Stack (LIFO) | O(1) | `dsa/queue_stack.py` |
-| Medicine autocomplete | Tree | O(P + K) | `dsa/trie.py` |
-| Nearest medical store | Graph | O((V+E) log V) | `dsa/graph.py` |
+## Project files
+Each feature has its own file, with the data structure it uses written by hand inside it.
+
+| File | What it does | Data structure / algorithm |
+|---|---|---|
+| `app.py` | Web pages and routes (Flask) | |
+| `caremate.py` | Puts all the parts together, demo data | |
+| `users.py` | Sign-up, login, managing users | Dictionaries |
+| `reports.py` | Report library, reports between two dates | Doubly Linked List, Binary Search Tree |
+| `appointments.py` | Slots, booking, doctor's queue, waiting list | Priority Queue, Queue |
+| `prescriptions.py` | Prescriptions and daily reminders | Stack |
+| `stores.py` | Nearest medical store | Graph |
+| `admin.py` | Most booked doctors, most prescribed medicines | Merge sort |
+| `sorting_searching.py` | Used by all the files above | Merge sort, quick sort, binary search, linear search |
+| `db.py` | Saves everything to Supabase | |
 
 ## How to run (Windows)
 ```bash
@@ -89,7 +93,7 @@ flowchart TB
     Browser <-->|"HTTP requests / pages"| Routes
 
     %% ---------- Service layer ----------
-    subgraph Service["Service layer · services.py (Care Mate)"]
+    subgraph Service["Service layer · caremate.py + one file per feature"]
         Logic["Business logic<br/>booking · accept/decline · waiting list<br/>prescriptions · reminders · store search<br/>admin rankings · activity log"]
     end
     Guard --> Logic
