@@ -1,36 +1,38 @@
 """
 Admin insights: most booked doctors, most prescribed medicines and totals.
+Counting is done in a dictionary, then merge sort puts the biggest counts first.
 """
 
+import data
 from appointments import HOLDS_SLOT
 from sorting_searching import merge_sort
 
 
-class Admin:
-    def most_booked_doctors(self, k=5):
-        counts = {}
-        for a in self.appointments.values():
-            if a["status"] in HOLDS_SLOT:
-                counts[a["doctor_id"]] = counts.get(a["doctor_id"], 0) + 1
-        top = merge_sort(list(counts.items()), key=lambda pair: pair[1], reverse=True)[:k]
-        return [(self.doctors.get(did), n) for did, n in top]
+def top(counts, k):
+    return merge_sort(list(counts.items()), key=lambda pair: pair[1], reverse=True)[:k]
 
-    def most_prescribed_medicines(self, k=5):
-        counts = {}
-        for stack in self.prescriptions.values():
-            for rx in stack.to_list():
-                for it in rx["items"]:
-                    counts[it["medicine"]] = counts.get(it["medicine"], 0) + 1
-        return merge_sort(list(counts.items()), key=lambda pair: pair[1], reverse=True)[:k]
 
-    def platform_totals(self):
-        by_status = {}
-        for a in self.appointments.values():
-            by_status[a["status"]] = by_status.get(a["status"], 0) + 1
-        return dict(patients=len(self.patients), doctors=len(self.doctors),
-                    appointments=len(self.appointments),
-                    pending=by_status.get("Pending", 0), confirmed=by_status.get("Confirmed", 0),
-                    completed=by_status.get("Completed", 0),
-                    fees=sum(float(a["fee"]) for a in self.appointments.values()
-                             if a["status"] == "Completed"),
-                    prescriptions=sum(len(s) for s in self.prescriptions.values()))
+def most_booked_doctors(k=5):
+    counts = {}
+    for a in data.appointments.values():
+        if a["status"] in HOLDS_SLOT:
+            counts[a["doctor_id"]] = counts.get(a["doctor_id"], 0) + 1
+    return [(data.doctors[did], n) for did, n in top(counts, k)]
+
+
+def most_prescribed_medicines(k=5):
+    counts = {}
+    for stack in data.prescriptions.values():
+        for rx in stack.to_list():
+            for item in rx["items"]:
+                counts[item["medicine"]] = counts.get(item["medicine"], 0) + 1
+    return top(counts, k)
+
+
+def totals():
+    statuses = [a["status"] for a in data.appointments.values()]
+    return dict(patients=len(data.patients), doctors=len(data.doctors), appointments=len(statuses),
+                pending=statuses.count("Pending"), confirmed=statuses.count("Confirmed"),
+                completed=statuses.count("Completed"),
+                fees=sum(a["fee"] for a in data.appointments.values() if a["status"] == "Completed"),
+                prescriptions=len(data.rx_by_id))
