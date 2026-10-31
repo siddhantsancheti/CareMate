@@ -1,15 +1,4 @@
-"""
-Sorting and searching, written by hand (no built-in sorted() or bisect).
-
-    merge_sort    -> sort reports, slots, appointments, names ...
-    quick_sort    -> sort medical stores by distance
-    binary_search -> find a report on an exact date, check if a slot is free
-    linear_search -> keyword search in reports
-"""
-
-
 def merge_sort(items, key=lambda x: x, reverse=False):
-    """Split the list in half, sort each half, then merge them. O(n log n), stable."""
     if len(items) <= 1:
         return list(items)
     mid = len(items) // 2
@@ -30,7 +19,6 @@ def merge_sort(items, key=lambda x: x, reverse=False):
 
 
 def quick_sort(items, key=lambda x: x):
-    """Pick the middle item as pivot; smaller items go left, bigger go right. O(n log n) on average."""
     if len(items) <= 1:
         return list(items)
     pivot = key(items[len(items) // 2])
@@ -41,14 +29,13 @@ def quick_sort(items, key=lambda x: x):
 
 
 def binary_search(sorted_items, target, key=lambda x: x):
-    """Index of the FIRST item whose key equals target, or -1. The list must be sorted. O(log n)"""
     low, high, found = 0, len(sorted_items) - 1, -1
     while low <= high:
         mid = (low + high) // 2
         k = key(sorted_items[mid])
         if k == target:
             found = mid
-            high = mid - 1             # keep looking on the left for an earlier match
+            high = mid - 1
         elif k < target:
             low = mid + 1
         else:
@@ -57,7 +44,6 @@ def binary_search(sorted_items, target, key=lambda x: x):
 
 
 def linear_search(items, query, fields):
-    """Items where any of the given fields contains the query text (any case). O(n)"""
     q = query.lower().strip()
     if not q:
         return list(items)
