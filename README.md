@@ -2,7 +2,7 @@
 
 A Flask web app for **patients, doctors and admins** where every feature runs on a **data structure or algorithm written from scratch in Python**.
 It uses no built-in `heapq`, `bisect` or `sorted()` for the core logic.
-Data is **stored in Supabase (Postgres)** so it survives restarts, but every query still runs on our own data structures.
+All data is kept in memory in our own data structures and goes back to the demo data when the app restarts.
 
 ## Features
 ### Patients
@@ -24,10 +24,9 @@ Data is **stored in Supabase (Postgres)** so it survives restarts, but every que
 | Feature | What they can do |
 |---|---|
 | **Insights** | Most booked doctors, most prescribed medicines, totals (patients, doctors, appointments, fees from completed visits), platform activity |
-| **Users** | Add, edit, deactivate and reactivate patients, doctors and admins. Deactivated users can't sign in or be booked; their records are kept |
 
 ### Accounts
-Everyone logs in with an email and password (passwords are stored hashed). **Anyone can sign up** as a patient or a doctor from the login page; admins are added by an admin.
+Everyone logs in with an email and password (passwords are stored hashed). **Anyone can sign up** as a patient or a doctor from the login page.
 
 Demo accounts:
 
@@ -45,15 +44,15 @@ Each feature has its own file, with the data structure it uses written by hand i
 | File | What it does | Data structure / algorithm |
 |---|---|---|
 | `app.py` | Web pages and routes (Flask) | |
-| `caremate.py` | Puts all the parts together, demo data | |
-| `users.py` | Sign-up, login, managing users | Dictionaries |
+| `data.py` | All the app's data (dictionaries holding our data structures) | |
+| `demo.py` | Demo map, stores and logins | |
+| `users.py` | Sign-up and login | Dictionaries |
 | `reports.py` | Report library, reports between two dates | Doubly Linked List, Binary Search Tree |
 | `appointments.py` | Slots, booking, doctor's queue, waiting list | Priority Queue, Queue |
 | `prescriptions.py` | Prescriptions and daily reminders | Stack |
 | `stores.py` | Nearest medical store | Graph |
 | `admin.py` | Most booked doctors, most prescribed medicines | Merge sort |
 | `sorting_searching.py` | Used by all the files above | Merge sort, quick sort, binary search, linear search |
-| `db.py` | Saves everything to Supabase | |
 
 ## How to run (Windows)
 ```bash
@@ -65,7 +64,7 @@ python app.py
 ```
 Open **http://127.0.0.1:5000** in your browser.
 
-Without `supabase_config.ini` the app runs **in memory** with demo data and starts fresh every time.
+The app runs **in memory** with demo data and starts fresh every time.
 
 ## System architecture
 ```mermaid
@@ -84,7 +83,7 @@ flowchart TB
 
     %% ---------- Web layer ----------
     subgraph Web["Web layer · Flask (app.py)"]
-        Routes["Routes by role<br/>Reports · Appointments · Prescriptions · Stores<br/>Bookings · Slots & fees · My patients<br/>Insights · Users"]
+        Routes["Routes by role<br/>Reports · Appointments · Prescriptions · Stores<br/>Bookings · Slots & fees · My patients<br/>Insights"]
         Guard["Checks<br/>role locks · input validation<br/>report access only after accepted booking"]
         Tpl["Jinja2 templates + static/style.css"]
         Routes --> Guard
@@ -92,21 +91,17 @@ flowchart TB
     end
     Browser <-->|"HTTP requests / pages"| Routes
 
-    %% ---------- Service layer ----------
-    subgraph Service["Service layer · caremate.py + one file per feature"]
-        Logic["Business logic<br/>booking · accept/decline · waiting list<br/>prescriptions · reminders · store search<br/>admin rankings · activity log"]
+    %% ---------- Feature files ----------
+    subgraph Service["Feature files · one per feature, each with its own data structure"]
+        Logic["users.py · reports.py · appointments.py<br/>prescriptions.py · stores.py · admin.py<br/>sorting_searching.py"]
     end
     Guard --> Logic
 
-    %% ---------- Storage ----------
-    subgraph Storage["Storage"]
-        DB["db.py<br/>write-through on every change<br/>restore() on startup"]
-        SB[("☁️ Supabase Postgres<br/>Mumbai · ap-south-1<br/>15 tables · Row Level Security")]
+    subgraph Storage["In memory"]
+        Data["data.py<br/>dictionaries holding our data structures<br/>demo.py fills them on start"]
         Files[("📁 uploads/<br/>report PDFs & images")]
-        DB <-->|"psycopg · parameterised SQL"| SB
     end
-    Logic -->|"save each change"| DB
-    DB -->|"data loaded into memory at startup"| Logic
+    Logic --> Data
     Guard -->|"upload / serve files"| Files
 
     classDef user fill:#fde8e1,stroke:#d9583b,color:#15302d
@@ -114,5 +109,5 @@ flowchart TB
     classDef store fill:#e8eefc,stroke:#2f4fa8,color:#15302d
     class P,D,A,Browser user
     class Routes,Guard,Tpl,Logic web
-    class DB,SB,Files store
+    class Data,Files store
 ```

@@ -7,7 +7,7 @@
     <h1>{{ me.name }}</h1>
     <p class="lede">{{ me.clinic }}</p>
   </div>
-  <form class="card switch-card" method="post" action="{{ url_for('toggle_auto_accept') }}">
+  <form class="card switch-card" method="post" action="{{ url_for('doctor_auto_accept') }}">
     <input type="hidden" name="on" value="{{ '0' if me.auto_accept else '1' }}">
     <b>Auto-accept bookings</b>
     <span class="status {{ 's-confirmed' if me.auto_accept else 's-pending' }}">{{ 'ON: confirmed instantly' if me.auto_accept else 'OFF: you accept each one' }}</span>
@@ -23,8 +23,8 @@
         <div><span class="pill p{{ a.priority }}">{{ a.priority_label }}</span> <b>{{ patient_name(a.patient_id) }}</b>
           <small>{{ a.slot }} · ₹{{ '%g' % a.fee }} · {{ a.reason }}</small></div>
         <div class="req-act">
-          <form method="post" action="{{ url_for('handle_request', aid=a.id, action='accept') }}"><button class="btn small">Accept</button></form>
-          <form method="post" action="{{ url_for('handle_request', aid=a.id, action='reject') }}"><button class="btn danger small">Decline</button></form>
+          <form method="post" action="{{ url_for('doctor_request', aid=a.id, action='accept') }}"><button class="btn small">Accept</button></form>
+          <form method="post" action="{{ url_for('doctor_request', aid=a.id, action='reject') }}"><button class="btn danger small">Decline</button></form>
         </div>
       </div>
     {% else %}<p class="muted">{{ 'Auto-accept is on, so nothing waits here.' if me.auto_accept else 'No requests waiting.' }}</p>{% endfor %}
@@ -38,7 +38,7 @@
         <b>{{ patient_name(a.patient_id) }}</b><small>{{ a.slot }} · {{ a.reason }}</small></li>
     {% else %}<li class="muted">No confirmed patients.</li>{% endfor %}
     </ol>
-    <form method="post" action="{{ url_for('call_next') }}"><button class="btn small" {{ 'disabled' if not queue }}>Call next patient</button></form>
+    <form method="post" action="{{ url_for('doctor_next') }}"><button class="btn small" {{ 'disabled' if not queue }}>Call next patient</button></form>
   </div>
 
   <div class="card">

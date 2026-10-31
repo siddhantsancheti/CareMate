@@ -30,7 +30,6 @@
         <a href="{{ url_for('doctor_patients') }}" class="{{ 'on' if ep=='doctor_patients' }}"><i>☺</i>My patients</a>
       {% else %}
         <a href="{{ url_for('home') }}" class="{{ 'on' if ep=='home' }}"><i>▲</i>Insights</a>
-        <a href="{{ url_for('admin_users') }}" class="{{ 'on' if ep=='admin_users' }}"><i>☰</i>Users</a>
       {% endif %}
     </nav>
     <form class="who" method="post" action="{{ url_for('logout') }}">
@@ -39,7 +38,7 @@
       <p>
         {% if role == 'patient' %}{{ me.age }} yrs · {{ me.gender }} · {{ me.blood_group }}<br>{{ me.location }}, Kondhwa
         {% elif role == 'doctor' %}{{ me.specialty }}<br>{{ me.clinic }}
-        {% else %}Manages users and sees platform insights{% endif %}
+        {% else %}Sees platform insights{% endif %}
       </p>
       <button class="btn small ghost-light">Sign out</button>
     </form>

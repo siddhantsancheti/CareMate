@@ -4,7 +4,7 @@
 <header class="page-head">
   <p class="eyebrow">Slots &amp; fees</p>
   <h1>Choose the slots you offer each day.</h1>
-  <p class="lede">Tick the times you're available, add any custom time you like, and set the fee for that day. Booked slots stay, so patients are never dropped.</p>
+  <p class="lede">Tick the times you're available and set the fee for that day. Booked slots stay, so patients are never dropped.</p>
 </header>
 
 <section class="grid-side">
@@ -27,17 +27,12 @@
     <h2>{{ day }}</h2>
     <div class="times" id="times">
       {% for t, state, f in view %}
-        <label class="time {{ state }} {{ 'custom' if t not in grid }}">
+        <label class="time {{ state }}">
           <input type="checkbox" name="times" value="{{ t }}" {{ 'checked' if state != 'off' }} {{ 'disabled' if state == 'booked' }}>
           <span>{{ t }}</span>{% if state == 'booked' %}<small>booked</small>{% endif %}
         </label>
         {% if state == 'booked' %}<input type="hidden" name="times" value="{{ t }}">{% endif %}
       {% endfor %}
-    </div>
-    <div class="custom-add">
-      <label class="inline">Custom time<input type="time" id="custom-time" step="300"></label>
-      <button type="button" class="btn ghost small" id="add-time">+ Add slot</button>
-      <span class="hint" id="custom-msg">Any time, e.g. 07:15 or 20:45. Remember to save.</span>
     </div>
     <div class="row2">
       <label>Fee for this day (₹)<input type="number" name="fee" min="0" max="100000" step="50" value="{{ '%g' % fee }}"></label>
@@ -54,20 +49,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  // add a custom time as a ticked slot, kept in time order
-  document.getElementById('add-time').onclick = () => {
-    const t = document.getElementById('custom-time').value, msg = document.getElementById('custom-msg');
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) { msg.textContent = 'Pick a time first.'; return; }
-    const box = document.getElementById('times');
-    const existing = box.querySelector(`input[value="${t}"]`);
-    if (existing) { if (!existing.disabled) existing.checked = true; msg.textContent = `${t} is already in the list (ticked).`; return; }
-    const label = document.createElement('label');
-    label.className = 'time custom';
-    label.innerHTML = `<input type="checkbox" name="times" value="${t}" checked><span>${t}</span>`;
-    const after = [...box.querySelectorAll('label.time')].find(l => l.querySelector('input').value > t);
-    box.insertBefore(label, after || null);
-    msg.textContent = `${t} added. Save to offer it.`;
-  };
   document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
     document.querySelectorAll('.time input[type=checkbox]:not(:disabled)').forEach(c => {
       const h = +c.value.slice(0, 2);

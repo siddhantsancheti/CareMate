@@ -1,104 +1,68 @@
 """
-Users: patients, doctors and admins. Sign-up, login and editing users.
-Users are kept in Python dictionaries: user id -> user details.
+Users: patients, doctors and admins. Sign-up and login.
+Passwords are never stored as they are, only as a hash.
 """
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import data
 from appointments import PriorityQueue, Queue
 from prescriptions import Stack
 from reports import BST, DoublyLinkedList
 from sorting_searching import merge_sort
 
 
-class Users:
-    def add_patient(self, name, age, gender, blood_group, location, phone="", active=True, pid=None,
-                    email=None, password_hash=None):
-        pid = pid or self._next_id("P")
-        patient = dict(id=pid, name=name, age=age, gender=gender, blood_group=blood_group,
-                       location=location, phone=phone, active=active, email=email, password_hash=password_hash)
-        self.patients[pid] = patient
-        self._index_email(email, pid)
-        self.reports[pid] = DoublyLinkedList()
-        self.report_index[pid] = BST()
-        self.prescriptions[pid] = Stack()
-        self._save("patients", **patient)
-        return pid
+def add_patient(name, age, gender, blood_group, location, phone, email, password):
+    pid = data.new_id("P")
+    data.patients[pid] = dict(id=pid, name=name, age=age, gender=gender, blood_group=blood_group,
+                              location=location, phone=phone, email=email,
+                              password=generate_password_hash(password))
+    data.emails[email] = pid
+    data.reports[pid] = DoublyLinkedList()
+    data.report_dates[pid] = BST()
+    data.prescriptions[pid] = Stack()
+    return pid
 
-    def add_doctor(self, name, specialty, clinic, fee=500, auto_accept=True, phone="",
-                   active=True, did=None, email=None, password_hash=None):
-        did = did or self._next_id("D")
-        doctor = dict(id=did, name=name, specialty=specialty, clinic=clinic, fee=fee,
-                      auto_accept=auto_accept, phone=phone, active=active, email=email, password_hash=password_hash)
-        self.doctors[did] = doctor
-        self._index_email(email, did)
-        self.free_slots[did] = []
-        self.pending[did] = DoublyLinkedList()
-        self.doctor_queue[did] = PriorityQueue()
-        self.waitlist[did] = Queue()
-        self._save("doctors", **doctor)
-        return did
 
-    def add_admin(self, name, active=True, aid=None, email=None, password_hash=None):
-        aid = aid or self._next_id("AD")
-        admin = dict(id=aid, name=name, active=active, email=email, password_hash=password_hash)
-        self.admins[aid] = admin
-        self._index_email(email, aid)
-        self._save("admins", **admin)
-        return aid
+def add_doctor(name, specialty, clinic, fee, phone, email, password, auto_accept=True):
+    did = data.new_id("D")
+    data.doctors[did] = dict(id=did, name=name, specialty=specialty, clinic=clinic, fee=fee,
+                             auto_accept=auto_accept, phone=phone, email=email,
+                             password=generate_password_hash(password))
+    data.emails[email] = did
+    data.free_slots[did] = []
+    data.requests[did] = DoublyLinkedList()
+    data.queue[did] = PriorityQueue()
+    data.waitlist[did] = Queue()
+    return did
 
-    # ---------------------------------------------------------------- sign-up / login
-    def _index_email(self, email, uid):
-        if email:
-            self.by_email[email.strip().lower()] = uid
 
-    @staticmethod
-    def hash_password(password):
-        return generate_password_hash(password)
+def add_admin(name, email, password):
+    aid = data.new_id("A")
+    data.admins[aid] = dict(id=aid, name=name, email=email, password=generate_password_hash(password))
+    data.emails[email] = aid
+    return aid
 
-    def email_taken(self, email):
-        return (email or "").strip().lower() in self.by_email
 
-    def authenticate(self, email, password):
-        """The user with this email and password, or None (wrong details or deactivated)."""
-        uid = self.by_email.get((email or "").strip().lower())
-        u = self.user(uid) if uid else None
-        if u and u["active"] and u.get("password_hash") and check_password_hash(u["password_hash"], password or ""):
-            return u
-        return None
+def find_user(user_id):
+    """(role, user) for an id, or (None, None)."""
+    for role, table in (("patient", data.patients), ("doctor", data.doctors), ("admin", data.admins)):
+        if user_id in table:
+            return role, table[user_id]
+    return None, None
 
-    def _table_of(self, uid):
-        for role, table, db_table in (("patient", self.patients, "patients"),
-                                      ("doctor", self.doctors, "doctors"),
-                                      ("admin", self.admins, "admins")):
-            if uid and uid in table:
-                return role, table, db_table
-        return None, None, None
 
-    def role_of(self, uid):
-        return self._table_of(uid)[0]
+def login(email, password):
+    """The user if the email and password are right, else None."""
+    role, user = find_user(data.emails.get(email.strip().lower()))
+    if user and check_password_hash(user["password"], password):
+        return user
+    return None
 
-    def user(self, uid):
-        table = self._table_of(uid)[1]
-        return table.get(uid) if table else None
 
-    def update_user(self, uid, **fields):
-        role, table, db_table = self._table_of(uid)
-        if not role:
-            return None
-        table.get(uid).update(fields)
-        self._update(db_table, fields, id=uid)
-        return table.get(uid)
+def email_taken(email):
+    return email.strip().lower() in data.emails
 
-    def _people(self, table, active_only):
-        return merge_sort([u for u in table.values() if u["active"] or not active_only],
-                          key=lambda u: u["name"])
 
-    def all_patients(self, active_only=False):
-        return self._people(self.patients, active_only)
-
-    def all_doctors(self, active_only=False):
-        return self._people(self.doctors, active_only)
-
-    def all_admins(self, active_only=False):
-        return self._people(self.admins, active_only)
+def all_doctors():
+    return merge_sort(list(data.doctors.values()), key=lambda d: d["name"])

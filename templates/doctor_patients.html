@@ -47,7 +47,7 @@
         <button class="btn">Upload to patient's library</button>
       </form>
 
-      <form class="card form" method="post" action="{{ url_for('prescribe', pid=patient.id) }}" autocomplete="off">
+      <form class="card form" method="post" action="{{ url_for('doctor_prescribe', pid=patient.id) }}" autocomplete="off">
         <h2>Write a prescription</h2>
         <div id="meds">
           <div class="med-row">
@@ -66,7 +66,7 @@
     <div class="card">
       <div class="desk-head">
         <h2>Prescription history</h2>
-        <form method="post" action="{{ url_for('undo_prescription', pid=patient.id) }}" onsubmit="return confirm('Withdraw the newest prescription?')">
+        <form method="post" action="{{ url_for('doctor_undo', pid=patient.id) }}" onsubmit="return confirm('Withdraw the newest prescription?')">
           <button class="btn danger small" {{ 'disabled' if not history or history[0].doctor_id != me.id }}>Withdraw newest</button></form>
       </div>
       {% for rx in history %}

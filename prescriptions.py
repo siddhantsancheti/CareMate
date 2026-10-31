@@ -1,14 +1,13 @@
 """
-Prescriptions: doctors write them, patients see them and get daily reminders.
+Prescriptions: doctors write them, patients see them and get today's reminders.
 
-Data structure used here:
-    Stack -> each patient's prescription history (newest on top), so the doctor
-             can withdraw the newest one with pop()
-Medicine suggestions come from a sorted list of names.
+    Stack -> each patient's prescription history, newest on top,
+             so withdrawing the newest one is just pop()
 """
 
 from datetime import date, timedelta
 
+import data
 from sorting_searching import merge_sort
 
 FREQ_TIMES = {"Once a day": ["09:00"], "Twice a day": ["09:00", "21:00"],
@@ -16,29 +15,26 @@ FREQ_TIMES = {"Once a day": ["09:00"], "Twice a day": ["09:00", "21:00"],
               "As needed": ["When required"]}
 
 
-# A node of a singly linked list: it holds data and points to the next node.
+# ---------------------------------------------------------------- Stack (last in, first out)
 class Node:
     def __init__(self, data):
         self.data = data
         self.next = None
 
 
-# =====================================================================
-# Stack (LIFO: last in, first out) built on a linked list
-# =====================================================================
 class Stack:
     def __init__(self):
         self.top = None
         self.size = 0
 
-    def push(self, data):
-        node = Node(data)
+    def push(self, item):               # put on top, O(1)
+        node = Node(item)
         node.next = self.top
         self.top = node
         self.size += 1
 
-    def pop(self):
-        if self.top is None:
+    def pop(self):                      # take from the top, O(1)
+        if not self.top:
             return None
         node = self.top
         self.top = node.next
@@ -52,86 +48,77 @@ class Stack:
         return self.size == 0
 
     def to_list(self):
-        """Top of the stack first."""
-        items = []
-        current = self.top
-        while current is not None:
-            items.append(current.data)
-            current = current.next
+        """Top first."""
+        items, node = [], self.top
+        while node:
+            items.append(node.data)
+            node = node.next
         return items
 
     def __len__(self):
         return self.size
 
 
-# =====================================================================
-# The prescriptions part of CareMate
-# =====================================================================
-class Prescriptions:
-    def add_medicine_name(self, name):
-        if any(m.lower() == name.lower() for m in self.medicine_names):
-            return
-        self.medicine_names = merge_sort(self.medicine_names + [name], key=str.lower)
-        self._save("medicines", ignore=True, name=name)
+# ---------------------------------------------------------------- prescription features
+def add_medicine(name):
+    if name.lower() not in [m.lower() for m in data.medicines]:
+        data.medicines.append(name)
+        data.medicines[:] = merge_sort(data.medicines, key=str.lower)
 
-    def suggest_medicines(self, prefix):
-        """Medicine names that start with what the doctor typed (alphabetical, at most 8)."""
-        prefix = prefix.lower()
-        return [m for m in self.medicine_names if m.lower().startswith(prefix)][:8]
 
-    def add_prescription(self, patient_id, doctor_id, items, notes="", pdate=None, rx_id=None):
-        rx = dict(id=rx_id or self._next_id("RX"), patient_id=patient_id, doctor_id=doctor_id,
-                  date=pdate or date.today().isoformat(), items=items, notes=notes)
-        self._save("prescriptions", id=rx["id"], patient_id=patient_id, doctor_id=doctor_id,
-                   date=rx["date"], notes=notes)
-        for it in items:
-            self.add_medicine_name(it["medicine"])       # learn new medicine names
-            self._save("prescription_items", prescription_id=rx["id"], **it)
-        self.prescriptions.get(patient_id).push(rx)
-        self.rx_by_id[rx["id"]] = rx
-        self.log(f"{self.doctors.get(doctor_id)['name']} sent a prescription to "
-                 f"{self.patients.get(patient_id)['name']}", patient_id, doctor_id)
-        return rx
+def suggest(prefix):
+    """Medicine names starting with what the doctor typed (at most 8)."""
+    return [m for m in data.medicines if m.lower().startswith(prefix.lower())][:8]
 
-    def undo_last_prescription(self, patient_id, doctor_id):
-        """A doctor can take back the newest prescription only if they wrote it."""
-        stack = self.prescriptions.get(patient_id)
-        top = stack.peek()
-        if not top or top["doctor_id"] != doctor_id:
-            return None
-        rx = stack.pop()
-        self.rx_by_id.pop(rx["id"], None)
-        self._delete("prescriptions", id=rx["id"])   # its items go too (ON DELETE CASCADE)
-        self.log(f"Prescription {rx['id']} withdrawn", patient_id, doctor_id)
-        return rx
 
-    def prescription_history(self, patient_id):
-        return self.prescriptions.get(patient_id).to_list()   # newest first
+def add_prescription(patient_id, doctor_id, items, notes="", rx_date=None):
+    rx = dict(id=data.new_id("RX"), patient_id=patient_id, doctor_id=doctor_id,
+              date=rx_date or date.today().isoformat(), items=items, notes=notes)
+    for item in items:
+        add_medicine(item["medicine"])
+    data.prescriptions[patient_id].push(rx)
+    data.rx_by_id[rx["id"]] = rx
+    data.log(f"{data.doctors[doctor_id]['name']} sent a prescription to {data.patients[patient_id]['name']}",
+             patient_id, doctor_id)
+    return rx
 
-    @staticmethod
-    def is_active(rx, item, today=None):
-        """A medicine is taken for `days` days starting on the prescription date."""
-        today = today or date.today()
-        start = date.fromisoformat(rx["date"])
-        return start <= today < start + timedelta(days=int(item["days"]))
 
-    def active_items(self, patient_id):
-        return [(rx, it) for rx in self.prescription_history(patient_id)
-                for it in rx["items"] if self.is_active(rx, it)]
+def withdraw_newest(patient_id, doctor_id):
+    """Only the newest prescription, and only by the doctor who wrote it."""
+    stack = data.prescriptions[patient_id]
+    if stack.is_empty() or stack.peek()["doctor_id"] != doctor_id:
+        return None
+    rx = stack.pop()
+    del data.rx_by_id[rx["id"]]
+    data.log(f"Prescription {rx['id']} withdrawn", patient_id, doctor_id)
+    return rx
 
-    def daily_schedule(self, patient_id):
-        """Today's reminders from EVERY medicine that is still running."""
-        out = []
-        for rx, it in self.active_items(patient_id):
-            for t in FREQ_TIMES.get(it["frequency"], ["09:00"]):
-                out.append(dict(time=t, medicine=it["medicine"], dose=it["dose"],
-                                doctor_id=rx["doctor_id"]))
-        return merge_sort(out, key=lambda x: x["time"])
 
-    def current_medicines(self, patient_id):
-        seen, out = set(), []
-        for _, it in self.active_items(patient_id):
-            if it["medicine"].lower() not in seen:
-                seen.add(it["medicine"].lower())
-                out.append(it["medicine"])
-        return out
+def history(patient_id):
+    return data.prescriptions[patient_id].to_list()      # newest first
+
+
+def is_active(rx, item):
+    """A medicine is taken for `days` days from the prescription date."""
+    start = date.fromisoformat(rx["date"])
+    return start <= date.today() < start + timedelta(days=int(item["days"]))
+
+
+def todays_reminders(patient_id):
+    reminders = []
+    for rx in history(patient_id):
+        for item in rx["items"]:
+            if is_active(rx, item):
+                for t in FREQ_TIMES.get(item["frequency"], ["09:00"]):
+                    reminders.append(dict(time=t, medicine=item["medicine"], dose=item["dose"],
+                                          doctor_id=rx["doctor_id"]))
+    return merge_sort(reminders, key=lambda r: r["time"])
+
+
+def current_medicines(patient_id):
+    names = []
+    for rx in history(patient_id):
+        for item in rx["items"]:
+            if is_active(rx, item) and item["medicine"] not in names:
+                names.append(item["medicine"])
+    return names
