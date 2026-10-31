@@ -95,7 +95,6 @@
       <input name="days" type="number" min="1" max="365" value="5">`;
     document.getElementById('meds').appendChild(row);
   };
-  // autocomplete: every keystroke asks /api/medicines?q=prefix
   document.addEventListener('input', async e => {
     if (!e.target.classList.contains('med-input')) return;
     const list = e.target.nextElementSibling, q = e.target.value.trim();

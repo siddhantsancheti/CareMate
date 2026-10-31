@@ -1,11 +1,3 @@
-"""
-Demo data: the map of Kondhwa around VIIT, 4 medical stores and three demo logins.
-
-    Patient  siddhant@caremate.in / siddhant123
-    Doctor   arjun@caremate.in    / arjun123
-    Admin    admin@caremate.in    / admin123
-"""
-
 from datetime import date, timedelta
 
 import appointments
@@ -20,7 +12,6 @@ def day(offset):
 
 
 def load():
-    # places: (x, y) is only for drawing; roads are approximate km
     places = {"VIIT College": (330, 250), "Kondhwa Budruk": (420, 290), "Upper Indira Nagar": (235, 205),
               "Bibvewadi": (180, 130), "Katraj": (170, 380), "Kondhwa Khurd": (470, 170),
               "NIBM Road": (565, 205), "Salunke Vihar": (525, 95), "Yewalewadi": (430, 410), "Undri": (600, 330)}
@@ -59,7 +50,6 @@ def load():
     for offset in (1, 2, 3):
         appointments.set_day_slots(d, day(offset), ["10:00", "11:00", "12:00", "17:00"], 500)
 
-    # reports, each with a sample PDF from the uploads folder
     reports.add_report(p, "Complete Blood Count", "Blood Test", day(-120), "Dr. Arjun Patil",
                        "Hb 14.2, WBC normal", "sample_P5_complete-blood-count.pdf")
     reports.add_report(p, "Chest X-Ray PA view", "X-Ray", day(-95), "Dr. Arjun Patil",
@@ -71,7 +61,6 @@ def load():
     reports.add_report(p, "HbA1c", "Blood Test", day(-10), "Dr. Arjun Patil",
                        "HbA1c 6.1% - prediabetic range", "sample_P5_hba1c.pdf")
 
-    # one accepted visit, and one request waiting for Dr. Arjun
     slots = [s for s, fee in appointments.bookable_slots(d)]
     status, first = appointments.book(p, d, slots[0], 3, "Review lipid profile")
     appointments.accept(first["id"], d)

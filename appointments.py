@@ -1,26 +1,18 @@
-"""
-Appointments: doctors' slots and fees, booking, the doctor's queue and the waiting list.
-
-    Queue         -> waiting list: first come, first served
-    PriorityQueue -> the doctor's queue: earliest day first, then the most urgent patient
-"""
-
 from datetime import date, datetime
 
 import data
 from sorting_searching import binary_search, merge_sort
 
 PRIORITY_LABELS = {1: "Emergency", 2: "Urgent", 3: "Routine"}
-DAY_TIMES = [f"{h:02d}:{m:02d}" for h in range(8, 20) for m in (0, 30)]   # 08:00 to 19:30
-HOLDS_SLOT = ("Pending", "Confirmed", "Completed")   # these keep a slot taken
-GIVES_ACCESS = ("Confirmed", "Completed")            # the doctor may then open the patient's reports
+DAY_TIMES = [f"{h:02d}:{m:02d}" for h in range(8, 20) for m in (0, 30)]
+HOLDS_SLOT = ("Pending", "Confirmed", "Completed")
+GIVES_ACCESS = ("Confirmed", "Completed")
 
 
 def now_slot():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
-# ---------------------------------------------------------------- Queue (first in, first out)
 class Node:
     def __init__(self, data):
         self.data = data
@@ -33,7 +25,7 @@ class Queue:
         self.rear = None
         self.size = 0
 
-    def enqueue(self, item):            # add at the rear, O(1)
+    def enqueue(self, item):
         node = Node(item)
         if self.rear:
             self.rear.next = node
@@ -42,7 +34,7 @@ class Queue:
         self.rear = node
         self.size += 1
 
-    def dequeue(self):                  # remove from the front, O(1)
+    def dequeue(self):
         if not self.front:
             return None
         node = self.front
@@ -69,13 +61,11 @@ class Queue:
         return self.size
 
 
-# ---------------------------------------------------------------- Priority Queue (sorted list)
 class PriorityQueue:
-    """Smallest priority is served first. Equal priorities keep the order they arrived in."""
     def __init__(self):
-        self.items = []                 # (priority, item), always kept sorted
+        self.items = []
 
-    def push(self, priority, item):     # O(n): walk back to the right place
+    def push(self, priority, item):
         i = len(self.items)
         while i > 0 and self.items[i - 1][0] > priority:
             i -= 1
@@ -94,10 +84,7 @@ class PriorityQueue:
         return [item for priority, item in self.items]
 
 
-# ---------------------------------------------------------------- slots and fees
 def set_day_slots(doctor_id, day, times, fee):
-    """The doctor ticks the times offered on one day and sets that day's fee.
-    Booked slots are never removed."""
     taken = taken_slots(doctor_id)
     keep = [s for s in data.free_slots[doctor_id] if not s.startswith(day)]
     for t in times:
@@ -114,7 +101,6 @@ def taken_slots(doctor_id):
 
 
 def day_view(doctor_id, day):
-    """[(time, 'free' | 'booked' | 'off', fee)] for the slot editor."""
     free, taken = data.free_slots[doctor_id], taken_slots(doctor_id)
     view = []
     for t in DAY_TIMES:
@@ -125,7 +111,6 @@ def day_view(doctor_id, day):
 
 
 def upcoming_days(doctor_id):
-    """[(day, free, booked, fee)] from today on."""
     today, days = date.today().isoformat(), {}
     for slot in data.free_slots[doctor_id]:
         if slot >= today:
@@ -137,17 +122,14 @@ def upcoming_days(doctor_id):
 
 
 def bookable_slots(doctor_id):
-    """Free slots still in the future, with their fee."""
     fee = data.doctors[doctor_id]["fee"]
     return [(s, data.slot_fee.get((doctor_id, s), fee)) for s in data.free_slots[doctor_id] if s > now_slot()]
 
 
-# ---------------------------------------------------------------- booking
 def book(patient_id, doctor_id, slot, priority, reason):
-    """Returns 'confirmed', 'pending' or 'waitlisted', and the appointment (None if waitlisted)."""
     slots = data.free_slots[doctor_id]
     i = binary_search(slots, slot) if slot else -1
-    if i == -1:                         # no free slot chosen: join the waiting list
+    if i == -1:
         data.waitlist[doctor_id].enqueue(dict(patient_id=patient_id, priority=priority, reason=reason))
         data.log(f"{data.patients[patient_id]['name']} joined {data.doctors[doctor_id]['name']}'s waiting list",
                  patient_id, doctor_id)
@@ -174,7 +156,6 @@ def create_appointment(patient_id, doctor_id, slot, priority, reason):
 
 
 def add_to_queue(appt):
-    # (day, urgency, time): earlier days first, emergencies first within a day
     data.queue[appt["doctor_id"]].push((appt["slot"][:10], appt["priority"], appt["slot"]), appt)
 
 
@@ -218,7 +199,6 @@ def cancel(appt_id, patient_id):
 
 
 def slot_opened(doctor_id, slot):
-    """The first patient on the waiting list gets the slot; otherwise it is free again."""
     if slot > now_slot() and not data.waitlist[doctor_id].is_empty():
         w = data.waitlist[doctor_id].dequeue()
         create_appointment(w["patient_id"], doctor_id, slot, w["priority"], w["reason"])
@@ -237,7 +217,7 @@ def call_next(doctor_id):
 
 def set_auto_accept(doctor_id, on):
     data.doctors[doctor_id]["auto_accept"] = on
-    if on:                              # accept everything already waiting
+    if on:
         for appt in data.requests[doctor_id].to_list():
             accept(appt["id"], doctor_id)
 
@@ -248,7 +228,6 @@ def patient_appointments(patient_id):
 
 
 def has_access(doctor_id, patient_id):
-    """A doctor may open a patient's reports once that patient's booking is accepted."""
     return any(a["doctor_id"] == doctor_id and a["patient_id"] == patient_id and a["status"] in GIVES_ACCESS
                for a in data.appointments.values())
 

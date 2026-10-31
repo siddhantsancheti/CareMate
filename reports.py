@@ -1,10 +1,3 @@
-"""
-Reports: each patient's library of medical reports.
-
-    DoublyLinkedList -> the library itself, newest report first
-    BST              -> the same reports ordered by date, for "reports between two dates"
-"""
-
 import data
 from appointments import has_access
 from sorting_searching import binary_search, linear_search, merge_sort
@@ -12,8 +5,6 @@ from sorting_searching import binary_search, linear_search, merge_sort
 REPORT_TYPES = ["Blood Test", "X-Ray", "MRI / CT Scan", "ECG", "Urine Test", "Discharge Summary", "Other"]
 
 
-# ---------------------------------------------------------------- Doubly Linked List
-# Each node points to the node before it and the node after it.
 class ListNode:
     def __init__(self, data):
         self.data = data
@@ -27,7 +18,7 @@ class DoublyLinkedList:
         self.tail = None
         self.size = 0
 
-    def add_first(self, item):          # O(1)
+    def add_first(self, item):
         node = ListNode(item)
         node.next = self.head
         if self.head:
@@ -37,7 +28,7 @@ class DoublyLinkedList:
         self.head = node
         self.size += 1
 
-    def add_last(self, item):           # O(1)
+    def add_last(self, item):
         node = ListNode(item)
         node.prev = self.tail
         if self.tail:
@@ -48,7 +39,6 @@ class DoublyLinkedList:
         self.size += 1
 
     def remove(self, match):
-        """Remove and return the first item where match(item) is True. O(n)"""
         node = self.head
         while node:
             if match(node.data):
@@ -76,12 +66,10 @@ class DoublyLinkedList:
         return self.size
 
 
-# ---------------------------------------------------------------- Binary Search Tree
-# Smaller dates go left, later dates go right, so an in-order walk gives reports in date order.
 class TreeNode:
     def __init__(self, date, report):
         self.date = date
-        self.reports = [report]          # several reports can share a date
+        self.reports = [report]
         self.left = None
         self.right = None
 
@@ -90,7 +78,7 @@ class BST:
     def __init__(self):
         self.root = None
 
-    def insert(self, date, report):     # O(height)
+    def insert(self, date, report):
         if not self.root:
             self.root = TreeNode(date, report)
             return
@@ -111,7 +99,6 @@ class BST:
                 node = node.right
 
     def remove(self, date, report_id):
-        # ponytail: the node stays with an empty list; fine for one patient's library
         node = self.root
         while node and node.date != date:
             node = node.left if date < node.date else node.right
@@ -119,7 +106,6 @@ class BST:
             node.reports = [r for r in node.reports if r["id"] != report_id]
 
     def between(self, low, high):
-        """Reports with low <= date <= high, in date order. O(height + results)"""
         result = []
         self._between(self.root, low, high, result)
         return result
@@ -127,18 +113,17 @@ class BST:
     def _between(self, node, low, high, result):
         if node is None:
             return
-        if low < node.date:                       # earlier dates may still be in range
+        if low < node.date:
             self._between(node.left, low, high, result)
         if low <= node.date <= high:
             result.extend(node.reports)
-        if node.date < high:                      # later dates may still be in range
+        if node.date < high:
             self._between(node.right, low, high, result)
 
     def in_order(self):
         return self.between("0000-00-00", "9999-12-31")
 
 
-# ---------------------------------------------------------------- report features
 def add_report(patient_id, title, rtype, rdate, doctor, notes, filename=None, uploaded_by=None):
     rid = data.new_id("R")
     report = dict(id=rid, patient_id=patient_id, title=title, type=rtype, date=rdate,
@@ -159,7 +144,6 @@ def delete_report(report):
 
 
 def can_view(role, user_id, report):
-    """The patient who owns it, or a doctor whose booking with that patient was accepted."""
     if not report:
         return False
     if role == "patient":
@@ -168,7 +152,6 @@ def can_view(role, user_id, report):
 
 
 def can_change_file(role, user_id, report):
-    """Anyone who can see it may attach a file; only the uploader may replace one."""
     if not can_view(role, user_id, report):
         return False
     if not report["filename"]:
@@ -177,9 +160,9 @@ def can_change_file(role, user_id, report):
 
 
 def list_reports(patient_id, query="", rtype="", sort_by="date", order="desc", date_from="", date_to=""):
-    if date_from or date_to:            # BST range search
+    if date_from or date_to:
         items = data.report_dates[patient_id].between(date_from or "0000-00-00", date_to or "9999-12-31")
-    else:                               # walk the linked list
+    else:
         items = data.reports[patient_id].to_list()
     items = linear_search(items, query, ["title", "notes", "doctor", "type"])
     if rtype:
@@ -189,7 +172,6 @@ def list_reports(patient_id, query="", rtype="", sort_by="date", order="desc", d
 
 
 def reports_on_date(patient_id, day):
-    """Binary search in the date-ordered reports."""
     in_order = data.report_dates[patient_id].in_order()
     i = binary_search(in_order, day, key=lambda r: r["date"])
     found = []

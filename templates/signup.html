@@ -40,7 +40,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  // show only the fields for the chosen role
   const sync = () => {
     const doctor = document.querySelector('input[name=role]:checked').value === 'doctor';
     document.querySelector('.for-doctor').hidden = !doctor;

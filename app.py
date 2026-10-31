@@ -1,13 +1,3 @@
-"""
-CareMate: A Personalized Nurse Assistant
-Run:  pip install -r requirements.txt
-      python app.py
-Open: http://127.0.0.1:5000
-
-This file only has the web pages. Each feature lives in its own file:
-users.py, reports.py, appointments.py, prescriptions.py, stores.py, admin.py
-"""
-
 import os
 import re
 import uuid
@@ -30,20 +20,17 @@ EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 FREQUENCIES = list(prescriptions.FREQ_TIMES)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()   # sign-ins reset when the app restarts
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024                     # 10 MB uploads
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32).hex()
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 demo.load()
 
 
-# ------------------------------------------------------------------ helpers
 def current_user():
-    """(role, user) of whoever is signed in, or (None, None)."""
     return users.find_user(session.get("user_id"))
 
 
 def number(value, default, low, high):
-    """A number from a form, kept between low and high."""
     try:
         return min(high, max(low, int(float(value))))
     except (TypeError, ValueError):
@@ -59,7 +46,6 @@ def valid_date(text):
 
 
 def save_upload():
-    """Saves the uploaded file. Returns (filename or None, error or None)."""
     f = request.files.get("file")
     if not f or not f.filename:
         return None, None
@@ -71,7 +57,6 @@ def save_upload():
 
 
 def report_from_form(patient_id, doctor="", uploaded_by=None):
-    """Shared by patient and doctor uploads."""
     title, rdate = request.form.get("title", "").strip(), request.form.get("date") or date.today().isoformat()
     if not title or not valid_date(rdate):
         flash("Please give the report a title and a valid date.", "error")
@@ -92,10 +77,10 @@ def require_login():
     role, user = current_user()
     if request.endpoint not in ("login", "signup", "static") and not user:
         return redirect(url_for("login"))
-    if (request.endpoint or "").startswith("doctor_") and role != "doctor":      # doctor pages
+    if (request.endpoint or "").startswith("doctor_") and role != "doctor":
         return redirect(url_for("home"))
     if request.endpoint in ("reports", "upload_report", "delete_report", "appointments", "book", "cancel",
-                            "prescriptions", "stores") and role != "patient":                  # patient pages
+                            "prescriptions", "stores") and role != "patient":
         return redirect(url_for("home"))
 
 
@@ -107,7 +92,6 @@ def add_to_every_page():
                 patient_name=lambda pid: data.patients[pid]["name"])
 
 
-# ------------------------------------------------------------------ sign up / log in
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -173,7 +157,6 @@ def home():
                            activity=data.activity_for("patient", me["id"]))
 
 
-# ------------------------------------------------------------------ report files (patient and doctor)
 @app.get("/uploads/<path:filename>")
 def uploaded_file(filename):
     role, me = current_user()
@@ -215,7 +198,6 @@ def api_medicines():
     return jsonify(prescriptions.suggest(request.args.get("q", "")))
 
 
-# ================================================================== PATIENT
 @app.get("/reports", endpoint="reports")
 def reports_page():
     me, a = current_user()[1], request.args
@@ -310,7 +292,6 @@ def stores_page():
                            use_rx=use_rx, chosen=chosen, graph=dict(pos=stores.city.pos, edges=stores.city.all_roads()))
 
 
-# ================================================================== DOCTOR
 @app.post("/doctor/auto-accept")
 def doctor_auto_accept():
     on = request.form.get("on") == "1"
@@ -360,7 +341,6 @@ def doctor_slots():
 
 
 def my_patient(pid):
-    """The patient, if this doctor has an accepted booking with them."""
     if pid not in data.patients or not appointments.has_access(current_user()[1]["id"], pid):
         abort(404)
     return data.patients[pid]

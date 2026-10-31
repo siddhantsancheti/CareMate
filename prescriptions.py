@@ -1,10 +1,3 @@
-"""
-Prescriptions: doctors write them, patients see them and get today's reminders.
-
-    Stack -> each patient's prescription history, newest on top,
-             so withdrawing the newest one is just pop()
-"""
-
 from datetime import date, timedelta
 
 import data
@@ -15,7 +8,6 @@ FREQ_TIMES = {"Once a day": ["09:00"], "Twice a day": ["09:00", "21:00"],
               "As needed": ["When required"]}
 
 
-# ---------------------------------------------------------------- Stack (last in, first out)
 class Node:
     def __init__(self, data):
         self.data = data
@@ -27,13 +19,13 @@ class Stack:
         self.top = None
         self.size = 0
 
-    def push(self, item):               # put on top, O(1)
+    def push(self, item):
         node = Node(item)
         node.next = self.top
         self.top = node
         self.size += 1
 
-    def pop(self):                      # take from the top, O(1)
+    def pop(self):
         if not self.top:
             return None
         node = self.top
@@ -48,7 +40,6 @@ class Stack:
         return self.size == 0
 
     def to_list(self):
-        """Top first."""
         items, node = [], self.top
         while node:
             items.append(node.data)
@@ -59,7 +50,6 @@ class Stack:
         return self.size
 
 
-# ---------------------------------------------------------------- prescription features
 def add_medicine(name):
     if name.lower() not in [m.lower() for m in data.medicines]:
         data.medicines.append(name)
@@ -67,7 +57,6 @@ def add_medicine(name):
 
 
 def suggest(prefix):
-    """Medicine names starting with what the doctor typed (at most 8)."""
     return [m for m in data.medicines if m.lower().startswith(prefix.lower())][:8]
 
 
@@ -84,7 +73,6 @@ def add_prescription(patient_id, doctor_id, items, notes="", rx_date=None):
 
 
 def withdraw_newest(patient_id, doctor_id):
-    """Only the newest prescription, and only by the doctor who wrote it."""
     stack = data.prescriptions[patient_id]
     if stack.is_empty() or stack.peek()["doctor_id"] != doctor_id:
         return None
@@ -95,11 +83,10 @@ def withdraw_newest(patient_id, doctor_id):
 
 
 def history(patient_id):
-    return data.prescriptions[patient_id].to_list()      # newest first
+    return data.prescriptions[patient_id].to_list()
 
 
 def is_active(rx, item):
-    """A medicine is taken for `days` days from the prescription date."""
     start = date.fromisoformat(rx["date"])
     return start <= date.today() < start + timedelta(days=int(item["days"]))
 
