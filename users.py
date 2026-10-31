@@ -1,8 +1,3 @@
-"""
-Users: patients, doctors and admins. Sign-up and login.
-Passwords are never stored as they are, only as a hash.
-"""
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import data
@@ -45,7 +40,6 @@ def add_admin(name, email, password):
 
 
 def find_user(user_id):
-    """(role, user) for an id, or (None, None)."""
     for role, table in (("patient", data.patients), ("doctor", data.doctors), ("admin", data.admins)):
         if user_id in table:
             return role, table[user_id]
@@ -53,7 +47,6 @@ def find_user(user_id):
 
 
 def login(email, password):
-    """The user if the email and password are right, else None."""
     role, user = find_user(data.emails.get(email.strip().lower()))
     if user and check_password_hash(user["password"], password):
         return user
